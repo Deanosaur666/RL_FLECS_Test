@@ -1,0 +1,22 @@
+There are four types of soldiers, and four types of coins, and four types of lasers, and four types of blood.
+
+Soldiers attack soldiers of other types. Soldiers want coins of the same type.
+Coins heal soldiers and increase their firepower.
+
+Cats are non hostile and wander around.
+
+If a single soldier gets enough coins, he becomes a pursuer.
+Pursuers want to kill all soldiers.
+
+Soldiers run from pursuers if within short range, but otherwise shoot at them.
+
+The planet has some hills, and blocks and brick walls which block shots and vision.
+
+The player can take control of any creature.
+When controlling a creature, they left click to move and right click to attack.
+
+Cats and pursuers do a melee attack. They turn red and dash, hurting anyone who touches them.
+This has a cooldown.
+
+All attacks send creatures flying a short distance.
+Pursuers have large attack radius and knockback.
