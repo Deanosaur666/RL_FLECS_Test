@@ -1,0 +1,20 @@
+{
+	"files.exclude": {
+		"**/.git": true,
+		"**/.svn": true,
+		"**/.hg": true,
+		"**/CVS": true,
+		"**/.DS_Store": true,
+		"**/*.o": true,
+		"**/*.exe": true,
+	},
+	"makefile.configureOnOpen": false,
+	"files.associations": {
+		"*.m": "c"
+	},
+	"chat.agent.enabled": false,
+	"chat.commandCenter.enabled": false,
+	"inlineChat.accessibleDiffView": "off",
+	"terminal.integrated.initialHint": false
+
+}
