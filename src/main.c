@@ -3,9 +3,81 @@
 #undef FLT_MAX
 #define FLT_MAX     340282346638528859811704183484516925440.0f     // Maximum value of a float, from bit pattern 01111111011111111111111111111111
 
+// global
+Camera camera = { 0 };
+Vector3 up = { 0.0f, 1.0f, 0.0f };
+
 typedef Vector3 Position;
 
 Mesh GenMeshPlane2(float width, float length, int resX, int resZ);
+
+float Timer = 0;
+
+typedef struct Billboard {
+    Texture2D * tex;
+    Rectangle source;
+    Vector2 size;
+    Vector2 origin;
+} Billboard;
+
+typedef struct CamDistance {
+    float dist;
+} CamDistance;
+
+void SetCamDistance(ecs_iter_t * it) {
+    CamDistance * cd = ecs_field(it, CamDistance, 0);
+    Position * pos = ecs_field(it, Position, 1);
+
+    // iterate matched entites
+    for(int i = 0; i < it->count; i ++) {
+        cd[i].dist = Vector3Distance(camera.position, pos[i]);
+    }
+}
+
+int CompareCamDistance(ecs_entity_t e1, const void * v1, ecs_entity_t e2, const void *v2) {
+    const CamDistance * cd1 = v1;
+    const CamDistance * cd2 = v2;
+
+    return (int)(cd2->dist*1000.0f - cd1->dist*1000.0f);
+}
+
+typedef enum  {
+    SPRITE_RED,
+    SPRITE_YELLOW,
+    SPRITE_GREEN,
+    SPRITE_PURPLE,
+    
+    SPRITE_REDCOIN,
+    SPRITE_GREENCOIN,
+    SPRITE_YELLOWCOIN,
+    SPRITE_PURPLECOIN,
+
+    SPRITE_REDBEAM,
+    SPRITE_GREENBEAM,
+    SPRITE_YELLOWBEAM,
+    SPRITE_PURPLEBEAM,
+
+    SPRITE_REDHIT_1,
+    SPRITE_REDHIT_2,
+    SPRITE_GREENHIT_1,
+    SPRITE_GREENHIT_2,
+    SPRITE_YELLOWHIT_1,
+    SPRITE_YELLOWHIT_2,
+    SPRITE_PURPLEHIT_1,
+    SPRITE_PURPLEHIT_2,
+
+    SPRITE_CAT,
+    SPRITE_PURSUER,
+    SPRITE_BLOOD_0,
+    SPRITE_BLOOD_1,
+    SPRITE_BLOOD_2,
+    SPRITE_BLOOD_3,
+    SPRITE_BLOOD_4,
+
+    SPRITE_COUNT,
+} SPRITE;
+
+ecs_entity_t Billboards[SPRITE_COUNT];
 
 int main () {
 
@@ -13,13 +85,10 @@ int main () {
 
 	ECS_COMPONENT(world, Vector3);
 	ECS_COMPONENT(world, Position);
+    ECS_COMPONENT(world, Billboard);
+    ECS_COMPONENT(world, CamDistance);
 
-	ecs_entity_t e = ecs_new(world);
-	ecs_set(world, e, Vector3, {0, 0, 0});
-	//ecs_set(world, e, Position, {0, 0, 0});
-
-	printf("%b\n", ecs_has(world, e, Vector3));
-	printf("%b\n", ecs_has(world, e, Position));
+    ECS_SYSTEM(world, SetCamDistance, EcsOnUpdate, CamDistance, Position);
 
 
 	// Tell the window to use vsync and work on high DPI displays
@@ -32,7 +101,6 @@ int main () {
 	SearchAndSetResourceDir("resources");
 
 	// Define the camera to look into our 3d world
-    Camera camera = { 0 };
     camera.position = (Vector3){ 0.0f, 1.8f, 0.0f };    // Camera position
     camera.target = (Vector3){ 0.0f, 1.8f, -1.0f };      // Camera looking at point
     camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
@@ -44,21 +112,57 @@ int main () {
 	// models
 	Model model_plain = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
 
-	Image fulltex = LoadImage("sprites.png");
+	Image fullimage = LoadImage("sprites.png");
+    Texture2D fulltex = LoadTexture("sprites.png");
 	//Image img_plain = ImageFromImage(fulltex, (Rectangle){ 0, 32, 16, 16 });
-	Image img_plain = ImageFromImage(fulltex, (Rectangle){ 16*4, 16*2, 16, 16 });
+	Image img_plain = ImageFromImage(fullimage, (Rectangle){ 16*4, 16*2, 16, 16 });
 	Texture2D tex_plain = LoadTextureFromImage(img_plain);
 	tex_plain.width = 256;
 	tex_plain.height = 256;
 
 	model_plain.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
+
+    // sprite billboard prefabs
+    for(int i = SPRITE_RED; i <= SPRITE_PURPLE; i ++) {
+        float tilew = ((float)fulltex.width)/8.0f;
+        float tileh = ((float)fulltex.height)/8.0f;
+        Billboards[i] = ecs_entity(world, {
+            .add = ecs_ids( EcsPrefab )
+        });
+        ecs_set(world, Billboards[i], Billboard, {
+            &fulltex,                                       // tex
+            (Rectangle){ i * tilew, 0.0f, tilew, tileh},    // source
+            (Vector2){ 1.0f, 1.0f },                      // size
+            (Vector2){ 0.5, 0.0f }// origin
+
+        });
+    }
+
+    // create billboard guys
+    for(int i = 0; i < 64; i ++) {
+        int bb = GetRandomValue(SPRITE_RED, SPRITE_PURPLE);
+        ecs_entity_t inst = ecs_new_w_pair(world, EcsIsA, Billboards[bb]);
+        ecs_set(world, inst, CamDistance, { 0 });
+        ecs_set(world, inst, Position, { (float)GetRandomValue(-8, 8), 0.0f, (float)GetRandomValue(-8, 8) });
+    }
 	
 	DisableCursor();
+
+    ecs_query_t * q_billboards = ecs_query(world, {
+        .terms = {
+            { ecs_id(Billboard) }, { ecs_id(Position) }, { ecs_id(CamDistance) }
+        },
+        .order_by = ecs_id(CamDistance),
+        .order_by_callback = (ecs_order_by_action_t)CompareCamDistance,
+    });
 
 	// game loop
 	while (!WindowShouldClose())		// run the loop untill the user presses ESCAPE or presses the Close button on the window
 	{
+        float dt = GetFrameTime() * 60.0;
+        Timer += dt;
 		UpdateCamera(&camera, CAMERA_FREE);
+        ecs_progress(world, dt);
 		
 		// Draw
         //----------------------------------------------------------------------------------
@@ -70,8 +174,18 @@ int main () {
 			BeginMode3D(camera);
 
 				DrawModel(model_plain, (Vector3){0}, 1.0f, WHITE);
-				//DrawModelWires(model_plain, (Vector3){0}, 1.0f, RED);
-               	//DrawGrid(16, 1.0);
+				
+                ecs_iter_t it = ecs_query_iter(world, q_billboards);
+
+                while(ecs_query_next(&it)) {
+                    Billboard *b = ecs_field(&it, Billboard, 0);
+                    Position *p = ecs_field(&it, Position, 1);
+
+                    // inner loop
+                    for (int i = 0; i < it.count; i ++) {
+                        DrawBillboardPro(camera, *b[i].tex, b[i].source, p[i], up, b[i].size, b[i].origin, 0.0f, WHITE);
+                    }
+                }
 
 			EndMode3D();
 		
@@ -92,6 +206,7 @@ int main () {
 
 Mesh GenMeshPlane2(float width, float length, int resX, int resZ)
 {
+    
     Mesh mesh = { 0 };
 
     resX++;
