@@ -1,5 +1,3 @@
-Unload all textures and images and stuff when done
-
 
 PLANS
 
