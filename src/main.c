@@ -1,4 +1,5 @@
 #include "headers.h"
+#include "list.h"
 
 #undef FLT_MAX
 #define FLT_MAX     340282346638528859811704183484516925440.0f     // Maximum value of a float, from bit pattern 01111111011111111111111111111111
@@ -151,6 +152,10 @@ RayCollision RayToModels(Ray ray) {
 	return collision;
 }
 
+DECLARE_PLIST(Image);
+DECLARE_PLIST(Texture2D);
+DECLARE_PLIST(Model);
+
 int main () {
 
 	world = ecs_init();
@@ -190,6 +195,10 @@ int main () {
 	SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
 
     // textures
+    // lists for removing when done
+    PLIST_(Image) images = NEWPLIST(Image);
+    PLIST_(Texture2D) textures = NEWPLIST(Texture2D);
+
 	Image fullimage = LoadImage("sprites.png");
     Texture2D fulltex = LoadTextureFromImage(fullimage);
 	Image img_plain = ImageFromImage(fullimage, (Rectangle){ 16*4, 16*2, 16, 16 });
@@ -197,15 +206,30 @@ int main () {
     Image img_brick = ImageFromImage(fullimage, (Rectangle){ 16*2, 16*2, 16, 16 });
 	Texture2D tex_brick = LoadTextureFromImage(img_brick);
 
+    LIST_ADD(images, &fullimage);
+    LIST_ADD(textures, &fulltex);
+    LIST_ADD(images, &img_plain);
+    LIST_ADD(textures, &tex_plain);
+    LIST_ADD(images, &img_brick);
+    LIST_ADD(textures, &tex_brick);
+
     // models
+
+    PLIST_(Model) models = NEWPLIST(Model);
+
     // plain
 	Model model_plain = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
 	model_plain.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
+
+    LIST_ADD(models, &model_plain);
 
     // block
     Model model_block = LoadModelFromMesh(GenMeshCube(1.0f, 1.0f, 1.0f));
 	model_block.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_brick;
 
+    LIST_ADD(models, &model_block);
+
+    // model entities
     ecs_entity_t map_entity = ecs_new(world);
     ecs_set(world, map_entity, MapModel, { model_plain });
     ecs_set(world, map_entity, ModelTransform, { .scale = unit_vector });
@@ -339,6 +363,18 @@ int main () {
 	}
 
 	// cleanup
+
+    // TODO: unload images, textures, and models
+    for(int i = 0; i < textures.size; i ++) {
+        UnloadTexture(*LIST_GET(textures, i));
+    }
+    for(int i = 0; i < images.size; i ++) {
+        UnloadImage(*LIST_GET(images, i));
+    }
+    for(int i = 0; i < models.size; i ++) {
+        printf("%d\n", i);
+        UnloadModel(*LIST_GET(models, i));
+    }
 
     // destroy the window and cleanup the OpenGL context
 	CloseWindow();

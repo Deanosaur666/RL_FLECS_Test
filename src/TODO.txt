@@ -1,3 +1,8 @@
+Unload all textures and images and stuff when done
+
+
+PLANS
+
 There are four types of soldiers, and four types of coins, and four types of lasers, and four types of blood.
 
 Soldiers attack soldiers of other types. Soldiers want coins of the same type.
