@@ -12,6 +12,7 @@ float GetRandomFloat(int min, int max, int precision) {
 Camera camera = { 0 };
 Vector3 up = { 0.0f, 1.0f, 0.0f };
 Vector3 down = { 0.0f, -1.0f, 0.0f };
+Vector3 unit_vector = { 1.0f, 1.0f, 1.0f };
 ecs_world_t * world;
 
 typedef Vector3 Position;
@@ -34,6 +35,23 @@ typedef struct CamDistance {
 typedef struct MapModel {
     Model model;
 } MapModel;
+
+typedef struct ModelTransform {
+    Position position;
+    Vector3 scale;
+    Vector3 rotationAxis;
+    float rotationAngle;
+} ModelTransform;
+
+Matrix MatrixFromTransform(ModelTransform t) {
+    Matrix matScale = MatrixScale(t.scale.x, t.scale.y, t.scale.z);
+    Matrix matRotation = MatrixRotate(t.rotationAxis, t.rotationAngle*DEG2RAD);
+    Matrix matTranslation = MatrixTranslate(t.position.x, t.position.y, t.position.z);
+
+    Matrix matTransform = MatrixMultiply(MatrixMultiply(matScale, matRotation), matTranslation);
+
+    return matTransform;
+}
 
 void SetCamDistance(ecs_iter_t * it) {
     CamDistance * cd = ecs_field(it, CamDistance, 0);
@@ -100,26 +118,30 @@ RayCollision RayToModels(Ray ray) {
 
     while (ecs_query_next(&it))  {
         MapModel *models = ecs_field(&it, Model, 0);
+        ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
 
         for(int i = 0; i < it.count; i ++) {
             Model model = models[i].model;
+            ModelTransform transform = transforms[i];
+
+            Matrix matTransform = MatrixFromTransform(transform);
 
             // Check ray collision against bounding box first, before trying the full ray-mesh test
-            RayCollision boxHitInfo = GetRayCollisionBox(ray, GetMeshBoundingBox(model.meshes[0]));
-            if ((boxHitInfo.hit) && (boxHitInfo.distance < collision.distance))
+            //RayCollision boxHitInfo = GetRayCollisionBox(ray, GetMeshBoundingBox(model.meshes[0]));
+            //if ((boxHitInfo.hit) && (boxHitInfo.distance < collision.distance))
             {
                 // Check ray collision against model meshes
                 RayCollision meshHitInfo = { 0 };
                 for (int m = 0; m < model.meshCount; m++)
                 {
-                    meshHitInfo = GetRayCollisionMesh(ray, model.meshes[m], model.transform);
+                    meshHitInfo = GetRayCollisionMesh(ray, model.meshes[m], matTransform);
                     if (meshHitInfo.hit)
                     {
                         // Save the closest hit mesh
                         if ((!collision.hit) || (collision.distance > meshHitInfo.distance))
                             collision = meshHitInfo;
 
-                        return collision;
+                        break;  // Stop once one mesh collision is detected, the colliding mesh is m
                     }
                 }
             }
@@ -138,12 +160,13 @@ int main () {
     ECS_COMPONENT(world, Billboard);
     ECS_COMPONENT(world, CamDistance);
     ECS_COMPONENT(world, MapModel);
+    ECS_COMPONENT(world, ModelTransform);
 
     ECS_SYSTEM(world, SetCamDistance, EcsOnUpdate, CamDistance, Position);
 
     q_models = ecs_query(world, {
         .terms = {
-            { ecs_id(MapModel) }, { ecs_id(Position) }
+            { ecs_id(MapModel) }, { ecs_id(ModelTransform) }
         },
     });
 
@@ -168,18 +191,52 @@ int main () {
 
     // textures
 	Image fullimage = LoadImage("sprites.png");
-    Texture2D fulltex = LoadTexture("sprites.png");
+    Texture2D fulltex = LoadTextureFromImage(fullimage);
 	Image img_plain = ImageFromImage(fullimage, (Rectangle){ 16*4, 16*2, 16, 16 });
 	Texture2D tex_plain = LoadTextureFromImage(img_plain);
+    Image img_brick = ImageFromImage(fullimage, (Rectangle){ 16*2, 16*2, 16, 16 });
+	Texture2D tex_brick = LoadTextureFromImage(img_brick);
 
     // models
+    // plain
 	Model model_plain = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
 	model_plain.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
 
+    // block
+    Model model_block = LoadModelFromMesh(GenMeshCube(1.0f, 1.0f, 1.0f));
+	model_block.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_brick;
+
     ecs_entity_t map_entity = ecs_new(world);
     ecs_set(world, map_entity, MapModel, { model_plain });
-    ecs_set(world, map_entity, Position, {0});
+    ecs_set(world, map_entity, ModelTransform, { .scale = unit_vector });
 
+    // create blocks
+    for(int i = 0; i < 32; i ++) {
+        ecs_entity_t block_entity = ecs_new(world);
+
+        Vector3 position = {
+            GetRandomFloat(-8, 8, 1000),
+            GetRandomFloat(0, 1, 1000),
+            GetRandomFloat(-8, 8, 1000)
+        };
+
+        Vector3 scale = {
+            1.0f, GetRandomFloat(1, 3, 1000), 1.0f
+        };
+
+        Vector3 rotationAxis = {
+            GetRandomFloat(-1, 1, 1000),
+            GetRandomFloat(-1, 1, 1000),
+            GetRandomFloat(-1, 1, 1000)
+        };
+        
+        float rotationAngle = GetRandomFloat(-30, 30, 1000);
+
+
+        ecs_set(world, block_entity, MapModel, { model_block });
+        ecs_set(world, block_entity, ModelTransform, { .position = position, .scale = scale,
+            .rotationAxis = rotationAxis, .rotationAngle = rotationAngle });
+    }
 
     // sprite billboard prefabs
     for(int i = SPRITE_RED; i <= SPRITE_PURPLE; i ++) {
@@ -207,7 +264,7 @@ int main () {
         float z = GetRandomFloat(-8, 8, 1000);
         float y = 0.0f;
 
-        Ray ray = { {x, 1.0f, z}, down };
+        Ray ray = { {x, 16.0f, z}, down };
         RayCollision collision = RayToModels(ray);
 
         if(collision.hit) {
@@ -244,9 +301,24 @@ int main () {
 
 			BeginMode3D(camera);
 
-				DrawModel(model_plain, (Vector3){0}, 1.0f, WHITE);
+                // draw models
+                ecs_iter_t it = ecs_query_iter(world, q_models);
+                while(ecs_query_next(&it)) {
+                    MapModel *models = ecs_field(&it, Model, 0);
+                    ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
+                    
+                    // inner loop
+                    for(int i = 0; i < it.count; i ++) {
+                        Model model = models[i].model;
+                        ModelTransform transform = transforms[i];
+
+                        DrawModelEx(model, transform.position, transform.rotationAxis,
+                            transform.rotationAngle, transform.scale, WHITE);
+                    }
+                }
 				
-                ecs_iter_t it = ecs_query_iter(world, q_billboards);
+                // draw billboards
+                it = ecs_query_iter(world, q_billboards);
 
                 while(ecs_query_next(&it)) {
                     Billboard *b = ecs_field(&it, Billboard, 0);
@@ -268,10 +340,11 @@ int main () {
 
 	// cleanup
 
+    // destroy the window and cleanup the OpenGL context
+	CloseWindow();
+
 	ecs_fini(world);
 
-	// destroy the window and cleanup the OpenGL context
-	CloseWindow();
 	return 0;
 }
 
