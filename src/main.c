@@ -3,9 +3,16 @@
 #undef FLT_MAX
 #define FLT_MAX     340282346638528859811704183484516925440.0f     // Maximum value of a float, from bit pattern 01111111011111111111111111111111
 
+float GetRandomFloat(int min, int max, int precision) {
+    float f = GetRandomValue(min*precision, max*precision);
+    return f / precision;
+}
+
 // global
 Camera camera = { 0 };
 Vector3 up = { 0.0f, 1.0f, 0.0f };
+Vector3 down = { 0.0f, -1.0f, 0.0f };
+ecs_world_t * world;
 
 typedef Vector3 Position;
 
@@ -23,6 +30,10 @@ typedef struct Billboard {
 typedef struct CamDistance {
     float dist;
 } CamDistance;
+
+typedef struct MapModel {
+    Model model;
+} MapModel;
 
 void SetCamDistance(ecs_iter_t * it) {
     CamDistance * cd = ecs_field(it, CamDistance, 0);
@@ -78,17 +89,63 @@ typedef enum  {
 } SPRITE;
 
 ecs_entity_t Billboards[SPRITE_COUNT];
+ecs_query_t * q_models;
+
+RayCollision RayToModels(Ray ray) {
+	RayCollision collision = { 0 };
+	collision.distance = FLT_MAX;
+	collision.hit = false;
+
+    ecs_iter_t it = ecs_query_iter(world, q_models);
+
+    while (ecs_query_next(&it))  {
+        MapModel *models = ecs_field(&it, Model, 0);
+
+        for(int i = 0; i < it.count; i ++) {
+            Model model = models[i].model;
+
+            // Check ray collision against bounding box first, before trying the full ray-mesh test
+            RayCollision boxHitInfo = GetRayCollisionBox(ray, GetMeshBoundingBox(model.meshes[0]));
+            if ((boxHitInfo.hit) && (boxHitInfo.distance < collision.distance))
+            {
+                // Check ray collision against model meshes
+                RayCollision meshHitInfo = { 0 };
+                for (int m = 0; m < model.meshCount; m++)
+                {
+                    meshHitInfo = GetRayCollisionMesh(ray, model.meshes[m], model.transform);
+                    if (meshHitInfo.hit)
+                    {
+                        // Save the closest hit mesh
+                        if ((!collision.hit) || (collision.distance > meshHitInfo.distance))
+                            collision = meshHitInfo;
+
+                        return collision;
+                    }
+                }
+            }
+        }
+    }
+
+	return collision;
+}
 
 int main () {
 
-	ecs_world_t * world = ecs_init();
+	world = ecs_init();
 
 	ECS_COMPONENT(world, Vector3);
 	ECS_COMPONENT(world, Position);
     ECS_COMPONENT(world, Billboard);
     ECS_COMPONENT(world, CamDistance);
+    ECS_COMPONENT(world, MapModel);
 
     ECS_SYSTEM(world, SetCamDistance, EcsOnUpdate, CamDistance, Position);
+
+    q_models = ecs_query(world, {
+        .terms = {
+            { ecs_id(MapModel) }, { ecs_id(Position) }
+        },
+    });
 
 
 	// Tell the window to use vsync and work on high DPI displays
@@ -109,18 +166,20 @@ int main () {
 
 	SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
 
-	// models
-	Model model_plain = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
-
+    // textures
 	Image fullimage = LoadImage("sprites.png");
     Texture2D fulltex = LoadTexture("sprites.png");
-	//Image img_plain = ImageFromImage(fulltex, (Rectangle){ 0, 32, 16, 16 });
 	Image img_plain = ImageFromImage(fullimage, (Rectangle){ 16*4, 16*2, 16, 16 });
 	Texture2D tex_plain = LoadTextureFromImage(img_plain);
-	tex_plain.width = 256;
-	tex_plain.height = 256;
 
+    // models
+	Model model_plain = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
 	model_plain.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
+
+    ecs_entity_t map_entity = ecs_new(world);
+    ecs_set(world, map_entity, MapModel, { model_plain });
+    ecs_set(world, map_entity, Position, {0});
+
 
     // sprite billboard prefabs
     for(int i = SPRITE_RED; i <= SPRITE_PURPLE; i ++) {
@@ -143,7 +202,19 @@ int main () {
         int bb = GetRandomValue(SPRITE_RED, SPRITE_PURPLE);
         ecs_entity_t inst = ecs_new_w_pair(world, EcsIsA, Billboards[bb]);
         ecs_set(world, inst, CamDistance, { 0 });
-        ecs_set(world, inst, Position, { (float)GetRandomValue(-8, 8), 0.0f, (float)GetRandomValue(-8, 8) });
+
+        float x = GetRandomFloat(-8, 8, 1000);
+        float z = GetRandomFloat(-8, 8, 1000);
+        float y = 0.0f;
+
+        Ray ray = { {x, 1.0f, z}, down };
+        RayCollision collision = RayToModels(ray);
+
+        if(collision.hit) {
+            y = collision.point.y;
+        }
+
+        ecs_set(world, inst, Position, { x, y, z });
     }
 	
 	DisableCursor();
