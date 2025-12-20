@@ -1,3 +1,8 @@
+#include "headers.h"
+#include "main.h"
+
+Position MoveVector(Position position, Vector3 movement, float hitRadius, RayCollision * hit);
+Position MoveAndSlide(Position position, Vector3 movement, float hitRadius);
 
 typedef enum {
     SPRITE_RED,

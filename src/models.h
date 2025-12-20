@@ -4,6 +4,7 @@
 #include "headers.h"
 #include "main.h"
 
+
 typedef struct MapModel {
     Model model;
 } MapModel;

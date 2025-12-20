@@ -1,7 +1,6 @@
 #include "headers.h"
 #include "main.h"
 #include "models.h"
-#include "list.h"
 #include "actors.h"
 
 float GetRandomFloat(int min, int max, int precision) {
@@ -85,7 +84,7 @@ int main () {
 	SearchAndSetResourceDir("resources");
 
 	// Define the camera to look into our 3d world
-    camera.position = (Vector3){ 1.0f, 1.0f, 2.0f };    // Camera position
+    camera.position = (Vector3){ 0.0f, -12.0f, 8.0f };    // Camera position
     camera.target = (Vector3){ 0.0f, 0.0, 0.0f };      // Camera looking at point
     camera.up = up;          // Camera up vector (rotation towards target)
     camera.fovy = 45.0f;                                // Camera field-of-view Y
@@ -210,6 +209,18 @@ int main () {
         Timer += dt;
 		UpdateCamera(&camera, CAMERA_FREE);
         ecs_progress(world, dt);
+
+        Vector3 keymove = {0};
+        if(IsKeyDown(KEY_I))
+            keymove.y += 1.0f;
+        if(IsKeyDown(KEY_K))
+            keymove.y -= 1.0;
+        if(IsKeyDown(KEY_J))
+            keymove.x -= 1.0f;
+        if(IsKeyDown(KEY_L))
+            keymove.x += 1.0f;
+        
+        keymove = Vector3Scale(keymove, 0.02f);
 		
 		// Draw
         //----------------------------------------------------------------------------------
@@ -246,6 +257,12 @@ int main () {
                     // inner loop
                     for (int i = 0; i < it.count; i ++) {
                         DrawBillboardPro(camera, *b[i].tex, b[i].source, p[i], up, b[i].size, b[i].origin, 0.0f, b[i].tint);
+                        Position hitcore = Vector3Add(p[i], Vector3Scale(up, 0.75f));
+                        Vector3 target = MoveAndSlide(hitcore, keymove, 0.5f);
+                        float z = GetElevation(target.x, target.y, target.z);
+                        if(z == FLT_MAX)
+                            z = p[i].z;
+                        p[i] = (Vector3){ target.x, target.y, z };
                     }
                 }
 
