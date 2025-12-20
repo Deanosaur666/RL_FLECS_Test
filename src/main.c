@@ -11,8 +11,8 @@ float GetRandomFloat(int min, int max, int precision) {
 
 // global
 Camera camera = { 0 };
-Vector3 up = { 0.0f, 1.0f, 0.0f };
-Vector3 down = { 0.0f, -1.0f, 0.0f };
+Vector3 up = { 0.0f, 0.0f, 1.0f };
+Vector3 down = { 0.0f, 0.0f, -1.0f };
 Vector3 unit_vector = { 1.0f, 1.0f, 1.0f };
 ecs_world_t * world;
 
@@ -85,9 +85,9 @@ int main () {
 	SearchAndSetResourceDir("resources");
 
 	// Define the camera to look into our 3d world
-    camera.position = (Vector3){ 0.0f, 1.8f, 0.0f };    // Camera position
-    camera.target = (Vector3){ 0.0f, 1.8f, -1.0f };      // Camera looking at point
-    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
+    camera.position = (Vector3){ 1.0f, 1.0f, 2.0f };    // Camera position
+    camera.target = (Vector3){ 0.0f, 0.0, 0.0f };      // Camera looking at point
+    camera.up = up;          // Camera up vector (rotation towards target)
     camera.fovy = 45.0f;                                // Camera field-of-view Y
     camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
 
@@ -139,12 +139,12 @@ int main () {
 
         Vector3 position = {
             GetRandomFloat(-8, 8, 1000),
-            GetRandomFloat(0, 1, 1000),
-            GetRandomFloat(-8, 8, 1000)
+            GetRandomFloat(-8, 8, 1000),
+            GetRandomFloat(0, 1, 1000)
         };
 
         Vector3 scale = {
-            1.0f, GetRandomFloat(1, 3, 1000), 1.0f
+            1.0f, 1.0f, GetRandomFloat(1, 3, 1000)
         };
 
         Vector3 rotationAxis = {
@@ -185,10 +185,10 @@ int main () {
         ecs_set(world, inst, CamDistance, { 0 });
 
         float x = GetRandomFloat(-8, 8, 1000);
-        float z = GetRandomFloat(-8, 8, 1000);
-        float y = GetElevation(x, 16.0f, z);
-        if(y == FLT_MAX)
-            y = 0.0f;
+        float y = GetRandomFloat(-8, 8, 1000);
+        float z = GetElevation(x, y, 16.0f);
+        if(z == FLT_MAX)
+            z = 0.0f;
 
         ecs_set(world, inst, Position, { x, y, z });
     }

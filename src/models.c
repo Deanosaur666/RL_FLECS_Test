@@ -61,55 +61,52 @@ float GetElevation(float x, float y, float z) {
     RayCollision collision = RayToModels(ray);
 
     if(collision.hit) {
-        return collision.point.y;
+        return collision.point.z;
     }
 
     return FLT_MAX;
 }
 
-Mesh GenMeshPlane2(float width, float length, int resX, int resZ) {
+Mesh GenMeshPlane2(float width, float length, int resX, int resY) {
     
     Mesh mesh = { 0 };
 
     resX++;
-    resZ++;
+    resY++;
 
     // Vertices definition
-    int vertexCount = resX*resZ; // vertices get reused for the faces
+    int vertexCount = resX*resY; // vertices get reused for the faces
 
     Vector3 *vertices = (Vector3 *)RL_MALLOC(vertexCount*sizeof(Vector3));
-    for (int z = 0; z < resZ; z++)
-    {
+    for (int y = 0; y < resY; y++) {
         // [-length/2, length/2]
-        float zPos = ((float)z/(resZ - 1) - 0.5f)*length;
-        for (int x = 0; x < resX; x++)
-        {
+        float yPos = ((float)y/(resY - 1) - 0.5f)*length;
+        for (int x = 0; x < resX; x++) {
             // [-width/2, width/2]
             float xPos = ((float)x/(resX - 1) - 0.5f)*width;
 
-			float yPos = (float)GetRandomValue(0, 16);
-			yPos /= 16.0f;
+			float zPos = (float)GetRandomValue(0, 16);
+			zPos /= 16.0f;
 
-            vertices[x + z*resX] = (Vector3){ xPos, yPos, zPos };
+            vertices[x + y*resX] = (Vector3){ xPos, yPos, zPos };
         }
     }
 
     // Normals definition
     Vector3 *normals = (Vector3 *)RL_MALLOC(vertexCount*sizeof(Vector3));
-    for (int n = 0; n < vertexCount; n++) normals[n] = (Vector3){ 0.0f, 1.0f, 0.0f };   // Vector3.up;
+    for (int n = 0; n < vertexCount; n++)
+        normals[n] = up;
 
     // TexCoords definition
     Vector2 *texcoords = (Vector2 *)RL_MALLOC(vertexCount*sizeof(Vector2));
-    for (int v = 0; v < resZ; v++)
-    {
-        for (int u = 0; u < resX; u++)
-        {
+    for (int v = 0; v < resY; v++) {
+        for (int u = 0; u < resX; u++) {
             texcoords[u + v*resX] = (Vector2){ (float)u, (float)v };
         }
     }
 
     // Triangles definition (indices)
-    int numFaces = (resX - 1)*(resZ - 1);
+    int numFaces = (resX - 1)*(resY - 1);
     int *triangles = (int *)RL_MALLOC(numFaces*6*sizeof(int));
     int t = 0;
     for (int face = 0; face < numFaces; face++)
@@ -118,12 +115,12 @@ Mesh GenMeshPlane2(float width, float length, int resX, int resZ) {
         int i = face + face/(resX - 1);
 
         triangles[t++] = i + resX;
-        triangles[t++] = i + 1;
         triangles[t++] = i;
+        triangles[t++] = i + 1;
 
         triangles[t++] = i + resX;
-        triangles[t++] = i + resX + 1;
         triangles[t++] = i + 1;
+        triangles[t++] = i + resX + 1;
     }
 
     mesh.vertexCount = vertexCount;
