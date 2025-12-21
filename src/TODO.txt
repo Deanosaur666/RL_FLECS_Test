@@ -1,4 +1,8 @@
 
+Fix up move and slide
+Moving up slopes in 3D??
+
+
 PLANS
 
 There are four types of soldiers, and four types of coins, and four types of lasers, and four types of blood.

@@ -1,8 +1,14 @@
 #include "headers.h"
 #include "main.h"
 
-Position MoveVector(Position position, Vector3 movement, float hitRadius, RayCollision * hit);
-Position MoveAndSlide(Position position, Vector3 movement, float hitRadius);
+#define V3toV2(V3) (Vector2){ V3.x, V3.y }
+#define V2toV3(V2, z) (Vector3){ V2.x, V2.y, z }
+
+#define PERPL(V2) (Vector2){ -V2.y, V2.x }
+#define PERPR(V2) (Vector2){ V2.y, -V2.x }
+
+Position MoveActor(Position position, Vector2 movement, float hitRadius, RayCollision * hit);
+Position MoveAndSlide(Position position, Vector2 movement, float hitRadius);
 
 typedef enum {
     SPRITE_RED,

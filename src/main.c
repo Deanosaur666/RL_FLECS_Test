@@ -210,7 +210,7 @@ int main () {
 		UpdateCamera(&camera, CAMERA_FREE);
         ecs_progress(world, dt);
 
-        Vector3 keymove = {0};
+        Vector2 keymove = {0};
         if(IsKeyDown(KEY_I))
             keymove.y += 1.0f;
         if(IsKeyDown(KEY_K))
@@ -220,7 +220,7 @@ int main () {
         if(IsKeyDown(KEY_L))
             keymove.x += 1.0f;
         
-        keymove = Vector3Scale(keymove, 0.02f);
+        keymove = Vector2Scale(keymove, 0.02f);
 		
 		// Draw
         //----------------------------------------------------------------------------------
