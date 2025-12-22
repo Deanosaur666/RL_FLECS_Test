@@ -40,7 +40,9 @@ RayCollision RayToModels(Ray ray) {
                 for (int m = 0; m < model.meshCount; m++)
                 {
                     meshHitInfo = GetRayCollisionMesh(ray, model.meshes[m], matTransform);
-                    if (meshHitInfo.hit)
+                    float hitAngle = Vector3Angle(ray.direction, meshHitInfo.normal)*RAD2DEG;
+
+                    if (meshHitInfo.hit && hitAngle >= 90.0f)
                     {
                         // Save the closest hit mesh
                         if ((!collision.hit) || (collision.distance > meshHitInfo.distance))
@@ -160,6 +162,134 @@ Mesh GenMeshPlane2(float width, float length, int resX, int resY) {
     RL_FREE(normals);
     RL_FREE(texcoords);
     RL_FREE(triangles);
+
+    // Upload vertex data to GPU (static mesh)
+    UploadMesh(&mesh, false);
+    return mesh;
+}
+
+Mesh GenMeshInvertedCube(float width, float depth, float height) {
+    Mesh mesh = { 0 };
+
+    float vertices[] = {
+        -width/2, -depth/2, height/2,
+        width/2, -depth/2, height/2,
+        width/2, depth/2, height/2,
+        -width/2, depth/2, height/2,
+        -width/2, -depth/2, -height/2,
+        -width/2, depth/2, -height/2,
+        width/2, depth/2, -height/2,
+        width/2, -depth/2, -height/2,
+        -width/2, depth/2, -height/2,
+        -width/2, depth/2, height/2,
+        width/2, depth/2, height/2,
+        width/2, depth/2, -height/2,
+        -width/2, -depth/2, -height/2,
+        width/2, -depth/2, -height/2,
+        width/2, -depth/2, height/2,
+        -width/2, -depth/2, height/2,
+        width/2, -depth/2, -height/2,
+        width/2, depth/2, -height/2,
+        width/2, depth/2, height/2,
+        width/2, -depth/2, height/2,
+        -width/2, -depth/2, -height/2,
+        -width/2, -depth/2, height/2,
+        -width/2, depth/2, height/2,
+        -width/2, depth/2, -height/2
+    };
+
+    float texcoords[] = {
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f,
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f
+    };
+
+    float normals[] = {
+        0.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 1.0f,
+        0.0f, 0.0f,-1.0f,
+        0.0f, 0.0f,-1.0f,
+        0.0f, 0.0f,-1.0f,
+        0.0f, 0.0f,-1.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f,-1.0f, 0.0f,
+        0.0f,-1.0f, 0.0f,
+        0.0f,-1.0f, 0.0f,
+        0.0f,-1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        -1.0f, 0.0f, 0.0f,
+        -1.0f, 0.0f, 0.0f,
+        -1.0f, 0.0f, 0.0f,
+        -1.0f, 0.0f, 0.0f
+    };
+
+
+
+    mesh.vertices = (float *)RL_MALLOC(24*3*sizeof(float));
+    memcpy(mesh.vertices, vertices, 24*3*sizeof(float));
+
+    mesh.texcoords = (float *)RL_MALLOC(24*2*sizeof(float));
+    memcpy(mesh.texcoords, texcoords, 24*2*sizeof(float));
+
+    mesh.normals = (float *)RL_MALLOC(24*3*sizeof(float));
+    memcpy(mesh.normals, normals, 24*3*sizeof(float));
+
+    mesh.indices = (unsigned short *)RL_MALLOC(36*sizeof(unsigned short));
+
+    int k = 0;
+
+    // Indices can be initialized right now
+    for (int i = 0; i < 36; i += 6) {
+        /*
+        mesh.indices[i] = 4*k;
+        mesh.indices[i + 1] = 4*k + 1;
+        mesh.indices[i + 2] = 4*k + 2;
+        mesh.indices[i + 3] = 4*k;
+        mesh.indices[i + 4] = 4*k + 2;
+        mesh.indices[i + 5] = 4*k + 3;
+        */
+
+        mesh.indices[i] = 4*k;
+        mesh.indices[i + 1] = 4*k + 2;
+        mesh.indices[i + 2] = 4*k + 1;
+        mesh.indices[i + 3] = 4*k;
+        mesh.indices[i + 4] = 4*k + 3;
+        mesh.indices[i + 5] = 4*k + 2;
+
+        k++;
+    }
+
+    mesh.vertexCount = 24;
+    mesh.triangleCount = 12;
 
     // Upload vertex data to GPU (static mesh)
     UploadMesh(&mesh, false);

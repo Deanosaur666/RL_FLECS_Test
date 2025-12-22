@@ -1,14 +1,25 @@
 #include "headers.h"
 #include "main.h"
 
+typedef struct Actor {
+    float radius;
+    float hitHeight;
+    float totalHeight;
+    Vector3 velocity;
+} Actor;
+
+extern Vector3 gravity;
+
 #define V3toV2(V3) (Vector2){ V3.x, V3.y }
 #define V2toV3(V2, z) (Vector3){ V2.x, V2.y, z }
 
 #define PERPL(V2) (Vector2){ -V2.y, V2.x }
 #define PERPR(V2) (Vector2){ V2.y, -V2.x }
 
-Position MoveActor(Position position, Vector2 movement, float hitRadius, RayCollision * hit);
-Position MoveAndSlide(Position position, Vector2 movement, float hitRadius);
+void ActorPhysics(Actor * actor, Position * position, Vector2 movement);
+Position MoveActor(Actor actor, Position position, Vector2 movement, RayCollision * hit);
+Position MoveAndSlideActor(Actor actor, Position position, Vector2 movement);
+Vector3 Vector2InPlane(Vector2 vec, Vector3 normal);
 
 typedef enum {
     SPRITE_RED,

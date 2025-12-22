@@ -18,9 +18,10 @@ typedef struct ModelTransform {
 
 Matrix MatrixFromTransform(ModelTransform t);
 Mesh GenMeshPlane2(float width, float length, int resX, int resZ);
+Mesh GenMeshInvertedCube(float width, float depth, float height);
+
 RayCollision RayToModels(Ray ray);
 
-Mesh GenMeshPlane2(float width, float length, int resX, int resZ);
 float GetElevation(float x, float y, float z);
 
 extern ecs_query_t * q_models;

@@ -12,6 +12,7 @@ float GetRandomFloat(int min, int max, int precision) {
 Camera camera = { 0 };
 Vector3 up = { 0.0f, 0.0f, 1.0f };
 Vector3 down = { 0.0f, 0.0f, -1.0f };
+Vector3 north = { 0.0f, 1.0f, 0.0f };
 Vector3 unit_vector = { 1.0f, 1.0f, 1.0f };
 ecs_world_t * world;
 
@@ -43,7 +44,7 @@ int CompareCamDistance(ecs_entity_t e1, const void * v1, ecs_entity_t e2, const 
     const CamDistance * cd1 = v1;
     const CamDistance * cd2 = v2;
 
-    return (int)(cd2->dist*1000.0f - cd1->dist*1000.0f);
+    return (int)(cd2->dist*10000.0f - cd1->dist*10000.0f);
 }
 
 ecs_entity_t Billboards[SPRITE_COUNT];
@@ -64,6 +65,7 @@ int main () {
     ECS_COMPONENT(world, CamDistance);
     ECS_COMPONENT(world, MapModel);
     ECS_COMPONENT(world, ModelTransform);
+    ECS_COMPONENT(world, Actor);
 
     ECS_SYSTEM(world, SetCamDistance, EcsOnUpdate, CamDistance, Position);
 
@@ -104,12 +106,17 @@ int main () {
     Image img_brick = ImageFromImage(fullimage, (Rectangle){ 16*2, 16*2, 16, 16 });
 	Texture2D tex_brick = LoadTextureFromImage(img_brick);
 
+    Image img_sky = GenImageChecked(256, 256, 16, 16, BLACK, BLUE);
+    Texture2D tex_sky = LoadTextureFromImage(img_sky);
+
     LIST_ADD(images, &fullimage);
     LIST_ADD(textures, &fulltex);
     LIST_ADD(images, &img_plain);
     LIST_ADD(textures, &tex_plain);
     LIST_ADD(images, &img_brick);
     LIST_ADD(textures, &tex_brick);
+    LIST_ADD(images, &img_sky);
+    LIST_ADD(textures, &tex_sky);
 
     // models
 
@@ -127,7 +134,14 @@ int main () {
 
     LIST_ADD(model_res_list, &model_block);
 
+    // skybox
+    Model model_skybox = LoadModelFromMesh(GenMeshInvertedCube(16, 16, 16));
+	model_skybox.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_sky;
+
+    LIST_ADD(model_res_list, &model_skybox);
+
     // model entities
+    // plain
     ecs_entity_t map_entity = ecs_new(world);
     ecs_set(world, map_entity, MapModel, { model_plain });
     ecs_set(world, map_entity, ModelTransform, { .scale = unit_vector });
@@ -182,6 +196,7 @@ int main () {
         int bb = GetRandomValue(SPRITE_RED, SPRITE_PURPLE);
         ecs_entity_t inst = ecs_new_w_pair(world, EcsIsA, Billboards[bb]);
         ecs_set(world, inst, CamDistance, { 0 });
+        ecs_set(world, inst, Actor, { .radius = 0.5f, .hitHeight = 0.1f });
 
         float x = GetRandomFloat(-8, 8, 1000);
         float y = GetRandomFloat(-8, 8, 1000);
@@ -191,6 +206,11 @@ int main () {
 
         ecs_set(world, inst, Position, { x, y, z });
     }
+
+    // skybox
+    ecs_entity_t skybox_entity = ecs_new(world);
+    ecs_set(world, skybox_entity, MapModel, { model_skybox});
+    ecs_set(world, skybox_entity, ModelTransform, { .scale = unit_vector });
 	
 	DisableCursor();
 
@@ -202,13 +222,24 @@ int main () {
         .order_by_callback = (ecs_order_by_action_t)CompareCamDistance,
     });
 
+    ecs_query_t * q_actors = ecs_query(world, {
+        .terms = {
+            { ecs_id(Actor) }, { ecs_id(Position) }
+        }
+    });
+
 	// game loop
 	while (!WindowShouldClose())		// run the loop untill the user presses ESCAPE or presses the Close button on the window
 	{
         float dt = GetFrameTime() * 60.0;
         Timer += dt;
-		UpdateCamera(&camera, CAMERA_FREE);
         ecs_progress(world, dt);
+
+        if(IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))
+            UpdateCamera(&camera, CAMERA_FREE);
+        
+        float camAngle = atan2f(camera.target.y - camera.position.y, camera.target.x - camera.position.x);
+        camAngle += 90*RAD2DEG;
 
         Vector2 keymove = {0};
         if(IsKeyDown(KEY_I))
@@ -221,6 +252,10 @@ int main () {
             keymove.x += 1.0f;
         
         keymove = Vector2Scale(keymove, 0.02f);
+        keymove = Vector2Rotate(keymove, camAngle);
+
+        Ray mouseRay = GetScreenToWorldRay(GetMousePosition(), camera);
+        RayCollision mouseHit = RayToModels(mouseRay);
 		
 		// Draw
         //----------------------------------------------------------------------------------
@@ -246,6 +281,13 @@ int main () {
                             transform.rotationAngle, transform.scale, WHITE);
                     }
                 }
+
+                 if(mouseHit.hit) {
+                    DrawCube(mouseHit.point, 0.3f, 0.3f, 0.3f, WHITE);
+                    DrawCubeWires(mouseHit.point, 0.3f, 0.3f, 0.3f, RED);
+                    DrawLine3D(mouseHit.point, Vector3Add(mouseHit.point, mouseHit.normal), RED);
+                    DrawLine3D(mouseHit.point, Vector3Add(mouseHit.point, Vector2InPlane(V3toV2(north), mouseHit.normal)), GREEN);
+                }
 				
                 // draw billboards
                 it = ecs_query_iter(world, q_billboards);
@@ -257,12 +299,6 @@ int main () {
                     // inner loop
                     for (int i = 0; i < it.count; i ++) {
                         DrawBillboardPro(camera, *b[i].tex, b[i].source, p[i], up, b[i].size, b[i].origin, 0.0f, b[i].tint);
-                        Position hitcore = Vector3Add(p[i], Vector3Scale(up, 0.75f));
-                        Vector3 target = MoveAndSlide(hitcore, keymove, 0.5f);
-                        float z = GetElevation(target.x, target.y, target.z);
-                        if(z == FLT_MAX)
-                            z = p[i].z;
-                        p[i] = (Vector3){ target.x, target.y, z };
                     }
                 }
 
@@ -272,6 +308,19 @@ int main () {
 		
 		EndDrawing();
         //----------------------------------------------------------------------------------
+
+        // actor movement
+        it = ecs_query_iter(world, q_actors);
+
+        while(ecs_query_next(&it)) {
+            Actor *a = ecs_field(&it, Actor, 0);
+            Position *p = ecs_field(&it, Position, 1);
+
+            // inner loop
+            for (int i = 0; i < it.count; i ++) {
+                ActorPhysics( &a[i], &p[i], keymove );
+            }
+        }
 	}
 
 	// cleanup
