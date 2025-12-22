@@ -18,29 +18,36 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
     RayCollision groundhit = RayToModels((Ray) { hitpos, down });
     groundhit.distance -= actor->hitHeight;
 
+    float velDist = Vector3Length(actor->velocity);
+
     // snap up to terrain
-    if(groundhit.hit && groundhit.distance <= 0) {
+    if(groundhit.hit && groundhit.distance <= 0.1) {
         position->z -= groundhit.distance;
         if(actor->velocity.z < 0) {
             actor->velocity = (Vector3){ 0 };
-            printf("STOP!\t%2.2f\t%p\n", groundhit.distance, actor);
+            //printf("STOP!\t%2.2f\t%p\n", groundhit.distance, actor);
+        }
+
+        if(IsKeyPressed(KEY_SPACE)) {
+            actor->velocity = Vector3Scale(groundhit.normal, 0.75f);
+            //printf("JUMP!\n");
         }
     }
-
-    float velDist = Vector3Length(actor->velocity);
+    
     if(velDist > 0) {
-        printf("GO!\t%2.2f\t%p\n", velDist, actor);
+        //printf("GO!\t%2.2f\t%p\n", groundhit.distance, actor);
 
-        RayCollision velHit = RayToModels((Ray) { hitpos, actor->velocity } );
-
+        RayCollision velHit = RayToModels((Ray) { hitpos, Vector3Normalize(actor->velocity) } );
         velHit.distance -= actor->hitHeight;
 
         if(velHit.hit && velHit.distance < velDist) {
+            //printf("OOF!\t%2.2f\t%p\n", velHit.distance, actor);
             if(velHit.distance > 0) {
                 *position = Vector3Add(*position, Vector3Scale(Vector3Normalize(actor->velocity), velHit.distance));
             }
         }
         else {
+            //printf("YAY!\t%2.2f\t%p\n", velHit.distance, actor);
             *position = Vector3Add(*position, actor->velocity);
         }
     }
