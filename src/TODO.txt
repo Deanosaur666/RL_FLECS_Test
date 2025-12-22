@@ -2,6 +2,9 @@
 Fix up move and slide
 Moving up slopes in 3D??
 
+Actors get stuck
+When everyone is moving and jumping at the same time, hits 30fps
+
 
 PLANS
 
