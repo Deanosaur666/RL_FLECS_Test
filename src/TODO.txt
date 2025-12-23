@@ -1,5 +1,5 @@
 
-SEPERATE QUERY FOR DIFFERENT SIZES
+SAVE MESH BOUNDING BOXES
 
 Fix up move and slide
 Moving up slopes in 3D??
