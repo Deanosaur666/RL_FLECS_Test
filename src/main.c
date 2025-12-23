@@ -60,16 +60,34 @@ int main () {
 	ECS_COMPONENT(world, Position);
     ECS_COMPONENT(world, Billboard);
     ECS_COMPONENT(world, CamDistance);
-    ECS_COMPONENT(world, MapModel);
     ECS_COMPONENT(world, ModelTransform);
     ECS_COMPONENT(world, Actor);
 
+    ECS_COMPONENT(world, MapModel);
+    ECS_COMPONENT(world, MapModel_ACTOR_SIZE_POINT);
+    ECS_COMPONENT(world, MapModel_ACTOR_SIZE_SMALL);
+
     ECS_SYSTEM(world, SetCamDistance, EcsOnUpdate, CamDistance, Position);
 
-    q_models = ecs_query(world, {
+    q_MapModel = ecs_query(world, {
         .terms = {
             { ecs_id(MapModel) }, { ecs_id(ModelTransform) }
         },
+        .cache_kind = EcsQueryCacheAll,
+    });
+
+    q_MapModelEx[ACTOR_SIZE_POINT] = ecs_query(world, {
+        .terms = {
+            { ecs_id(MapModel_ACTOR_SIZE_POINT) }, { ecs_id(ModelTransform) }
+        },
+        .cache_kind = EcsQueryCacheAll,
+    });
+    
+    q_MapModelEx[ACTOR_SIZE_SMALL] = ecs_query(world, {
+        .terms = {
+            { ecs_id(MapModel_ACTOR_SIZE_SMALL) }, { ecs_id(ModelTransform) }
+        },
+        .cache_kind = EcsQueryCacheAll,
     });
 
 
@@ -124,27 +142,27 @@ int main () {
 	Model model_plain = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
 	model_plain.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
 
-    MapModel map_plain = MakeMapModel(model_plain, &model_res_list);
+    MapModelCollection mapc_plain = MakeMapModelCollection(model_plain, &model_res_list);
 
     // block
     printf("LOAD BLOCK\n");
-    //Model model_block = LoadModelFromMesh(GenMeshCube(1.0f, 1.0f, 3.0f));
-	//model_block.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_brick;
-    Model model_block = LoadModel("Small pillar.glb");
+    Model model_block = LoadModelFromMesh(GenMeshCube(1.0f, 1.0f, 3.0f));
+	model_block.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_brick;
+    //Model model_block = LoadModel("Small pillar.glb");
 
-    MapModel map_block = MakeMapModel(model_block, &model_res_list);
+    MapModelCollection mapc_block = MakeMapModelCollection(model_block, &model_res_list);
 
     // skybox
     printf("LOAD SKYBOX\n");
     Model model_skybox = LoadModelFromMesh(GenMeshInvertedCube(16, 16, 16));
 	model_skybox.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_sky;
 
-    MapModel map_skybox = MakeMapModel(model_skybox, &model_res_list);
+    MapModelCollection mapc_skybox = MakeMapModelCollection(model_skybox, &model_res_list);
 
     // model entities
     // plain
     ecs_entity_t map_entity = ecs_new(world);
-    ecs_set_ptr(world, map_entity, MapModel, &map_plain);
+    ecs_set_maps(map_entity, mapc_plain);
     ecs_set(world, map_entity, ModelTransform, { .scale = unit_vector });
 
     // create blocks
@@ -165,15 +183,14 @@ int main () {
         
         float rotationAngle = GetRandomFloat(-30, 30, 1000);
 
-
-        ecs_set_ptr(world, block_entity, MapModel, &map_block);
+        ecs_set_maps(block_entity, mapc_block);
         ecs_set(world, block_entity, ModelTransform, { .position = position, .scale = unit_vector,
             .rotationAxis = rotationAxis, .rotationAngle = rotationAngle });
     }
 
     // skybox
     ecs_entity_t skybox_entity = ecs_new(world);
-    ecs_set_ptr(world, skybox_entity, MapModel, &map_skybox);
+    ecs_set_maps(skybox_entity, mapc_skybox);
     ecs_set(world, skybox_entity, ModelTransform, { .scale = unit_vector });
 
     // sprite billboard prefabs
@@ -264,25 +281,42 @@ int main () {
 			BeginMode3D(camera);
 
                 // draw models
-                ecs_iter_t it = ecs_query_iter(world, q_models);
+                ecs_iter_t it = ecs_query_iter(world, q_MapModel);
                 while(ecs_query_next(&it)) {
                     MapModel *models = ecs_field(&it, MapModel, 0);
                     ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
                     
                     // inner loop
                     for(int i = 0; i < it.count; i ++) {
-                        Model model = models[i].model;
-                        //Model exmodel = models[i].expanded[1];
+                        Model model = models[i];
                         ModelTransform transform = transforms[i];
 
                         DrawModelEx(model, transform.position, transform.rotationAxis,
                             transform.rotationAngle, transform.scale, WHITE);
-                        //DrawModelWiresEx(exmodel, transform.position, transform.rotationAxis,
-                        //    transform.rotationAngle, transform.scale, RED);
                     }
                 }
 
-                 if(mouseHit.hit) {
+                // draw model wires
+                /*
+                it = ecs_query_iter(world, q_MapModelEx[ACTOR_SIZE_SMALL]);
+                while(ecs_query_next(&it)) {
+                    MapModel *models = ecs_field(&it, MapModel, 0);
+                    ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
+                    
+                    // inner loop
+                    for(int i = 0; i < it.count; i ++) {
+                        Model model = models[i];
+                        ModelTransform transform = transforms[i];
+
+                        DrawModelWiresEx(model, transform.position, transform.rotationAxis,
+                            transform.rotationAngle, transform.scale, RED);
+                        //DrawModelEx(model, transform.position, transform.rotationAxis,
+                        //    transform.rotationAngle, transform.scale, WHITE);
+                    }
+                }
+                */
+
+                if(mouseHit.hit) {
                     DrawCube(mouseHit.point, 0.3f, 0.3f, 0.3f, WHITE);
                     DrawCubeWires(mouseHit.point, 0.3f, 0.3f, 0.3f, RED);
                     DrawLine3D(mouseHit.point, Vector3Add(mouseHit.point, mouseHit.normal), RED);

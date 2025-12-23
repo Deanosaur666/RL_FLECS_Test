@@ -2,7 +2,8 @@
 #include "models.h"
 #include "main.h"
 
-ecs_query_t * q_models;
+ecs_query_t * q_MapModel;
+ecs_query_t * q_MapModelEx[ACTOR_SIZE_COUNT];
 
 Matrix MatrixFromTransform(ModelTransform t) {
     Matrix matScale = MatrixScale(t.scale.x, t.scale.y, t.scale.z);
@@ -19,14 +20,15 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size) {
 	collision.distance = FLT_MAX;
 	collision.hit = false;
 
-    ecs_iter_t it = ecs_query_iter(world, q_models);
+    ecs_iter_t it = ecs_query_iter(world, q_MapModelEx[size]);
+    //ecs_iter_t it = ecs_query_iter(world, q_MapModel);
 
     while (ecs_query_next(&it))  {
         MapModel *models = ecs_field(&it, MapModel, 0);
         ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
 
         for(int i = 0; i < it.count; i ++) {
-            Model model = models[i].expanded[size];
+            Model model = models[i];
             ModelTransform transform = transforms[i];
 
             Matrix matTransform = MatrixFromTransform(transform);
@@ -421,12 +423,13 @@ Model ExpandModel(Model original,Vector3 expandScale) {
     model.materials[0] = LoadMaterialDefault();
 
     model.meshMaterial = (int *)RL_CALLOC(model.meshCount, sizeof(int));
+    model.meshMaterial[0] = 0;  // First material index
 
     return model;
 }
 
-MapModel MakeMapModel(Model original, PLIST_(Model) * modelListPtr) {
-    MapModel mm = { original };
+MapModelCollection MakeMapModelCollection(Model original, PLIST_(Model) * modelListPtr) {
+    MapModelCollection mm = { original };
     PLIST_(Model) modelList = *modelListPtr;
     
     LIST_ADD(modelList, &original);
