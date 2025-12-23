@@ -1,10 +1,23 @@
 #include "headers.h"
 #include "main.h"
 
+#ifndef _actors
+#define _actors
+
+typedef enum  {
+    ACTOR_SIZE_POINT,
+    ACTOR_SIZE_SMALL,
+
+    ACTOR_SIZE_COUNT
+} ACTOR_SIZE;
+
+extern Vector3 ACTOR_SIZE_VECTORS[ACTOR_SIZE_COUNT];
+
+#define ACTOR_SMALL_R 0.25f
+#define ACTOR_SMALL_Ho2 ((14.0f / 16.0f) / 2.0f)
+
 typedef struct Actor {
-    float radius;
-    float hitHeight;
-    float totalHeight;
+    ACTOR_SIZE size;
     Vector3 velocity;
 } Actor;
 
@@ -65,3 +78,5 @@ typedef enum {
     ACTOR_CAT,
     ACTOR_PURSUER,
 } ACTOR_TYPE;
+
+#endif

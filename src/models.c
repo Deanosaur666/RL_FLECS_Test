@@ -14,7 +14,7 @@ Matrix MatrixFromTransform(ModelTransform t) {
     return matTransform;
 }
 
-RayCollision RayToModels(Ray ray) {
+RayCollision RayToModels(Ray ray, ACTOR_SIZE size) {
 	RayCollision collision = { 0 };
 	collision.distance = FLT_MAX;
 	collision.hit = false;
@@ -26,7 +26,7 @@ RayCollision RayToModels(Ray ray) {
         ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
 
         for(int i = 0; i < it.count; i ++) {
-            Model model = models[i].model;
+            Model model = models[i].expanded[size];
             ModelTransform transform = transforms[i];
 
             Matrix matTransform = MatrixFromTransform(transform);
@@ -58,9 +58,9 @@ RayCollision RayToModels(Ray ray) {
 	return collision;
 }
 
-float GetElevation(float x, float y, float z) {
+float GetElevation(float x, float y, float z, ACTOR_SIZE size) {
     Ray ray = { {x, y, z}, down };
-    RayCollision collision = RayToModels(ray);
+    RayCollision collision = RayToModels(ray, size);
 
     if(collision.hit) {
         return collision.point.z;
@@ -295,4 +295,149 @@ Mesh GenMeshInvertedCube(float width, float depth, float height) {
     UploadMesh(&mesh, false);
 
     return mesh;
+}
+
+Mesh ExpandMesh(Mesh original, Vector3 expandScale) {
+    Mesh mesh = { 0 };
+    mesh.vertexCount = original.vertexCount;
+    mesh.triangleCount = original.triangleCount;
+
+    // copy vertices (these will be modified)
+    mesh.vertices = (float *)RL_MALLOC(mesh.vertexCount*3*sizeof(float));
+    memcpy(mesh.vertices, original.vertices, mesh.vertexCount*3*sizeof(float));
+
+    // copy other stuff?
+    if(original.normals) {
+        mesh.normals = (float *)RL_MALLOC(mesh.vertexCount*3*sizeof(float));
+        memcpy(mesh.normals, original.normals, mesh.vertexCount*3*sizeof(float));
+    }
+
+    if(original.indices) {
+        mesh.indices = (unsigned short *)RL_MALLOC(mesh.triangleCount*3*sizeof(unsigned short));
+        memcpy(mesh.indices, original.indices, mesh.triangleCount*3*sizeof(unsigned short));
+    }
+
+    // find duplicate vertices
+    Vector3 *vertdata = (Vector3 *)mesh.vertices;
+
+    // we consider the FIRST vertex at a position to be the original
+    int vertexDuplicates[mesh.vertexCount];
+
+    for(int i = 0; i < mesh.vertexCount; i ++) {
+        vertexDuplicates[i] = -1; // not a duplicate
+        Vector3 vert = vertdata[i];
+        for(int j = 0; j < i; j ++) {
+            Vector3 vert2 = vertdata[j];
+            if(Vector3Equals(vert, vert2)) {
+                vertexDuplicates[i] = j;
+                printf("Duplicate vertices: %d, %d\n", i, j);
+                break;
+            }
+        }
+    }
+
+
+    // expansion
+    Vector3 pushVectors[mesh.vertexCount];
+    memset(pushVectors, 0, mesh.vertexCount * sizeof(Vector3));
+    Vector3 pushScale[mesh.vertexCount];
+    memset(pushScale, 0, mesh.vertexCount * sizeof(Vector3));
+
+    for(int i = 0; i < mesh.triangleCount; i ++) {
+        int ai, bi, ci;
+        Vector3 *a, *b, *c, edge1, edge2, normal, expand;
+
+        if (mesh.indices)
+        {
+            ai = mesh.indices[i*3 + 0];
+            bi = mesh.indices[i*3 + 1];
+            ci = mesh.indices[i*3 + 2];
+        }
+        else
+        {
+            ai = i*3 + 0;
+            bi = i*3 + 1;
+            ci = i*3 + 2;
+        }
+
+        a = &vertdata[ai];
+        b = &vertdata[bi];
+        c = &vertdata[ci];
+
+        edge1 = Vector3Subtract(*b, *a);
+        edge2 = Vector3Subtract(*c, *a);
+        normal = Vector3Normalize(Vector3CrossProduct(edge1, edge2));
+
+        expand = Vector3Multiply(normal, expandScale);
+
+        // if this vertex is a duplicate, we instead go to the source
+        ai = vertexDuplicates[ai] != -1 ? vertexDuplicates[ai] : ai;
+        bi = vertexDuplicates[bi] != -1 ? vertexDuplicates[bi] : bi;
+        ci = vertexDuplicates[ci] != -1 ? vertexDuplicates[ci] : ci;
+
+        pushVectors[ai] = Vector3Add(pushVectors[ai], expand);
+        pushVectors[bi] = Vector3Add(pushVectors[bi], expand);
+        pushVectors[ci] = Vector3Add(pushVectors[ci], expand);
+
+        pushScale[ai] = Vector3Add(pushScale[ai], normal);
+        pushScale[bi] = Vector3Add(pushScale[bi], normal);
+        pushScale[ci] = Vector3Add(pushScale[ci], normal);
+    }
+
+    for(int i = 0; i < mesh.vertexCount; i ++) {
+        int vi = vertexDuplicates[i] != -1 ? vertexDuplicates[i] : i;
+        
+        Vector3 * vert = &vertdata[i];
+
+        Vector3 expand = pushVectors[vi];
+        Vector3 scale = pushScale[vi];
+        //expand = Vector3Scale(expand, 1.0f / (float)count);
+        //expand = Vector3Divide(expand, scale);
+        expand = (Vector3){ expand.x / fabsf(scale.x), expand.y / fabsf(scale.y), expand.z / fabsf(scale.z) };
+
+        *vert = Vector3Add(*vert, expand);
+    }
+
+    // Upload vertex data to GPU (static mesh)
+    UploadMesh(&mesh, false);
+
+    return mesh;
+}
+
+Model ExpandModel(Model original,Vector3 expandScale) {
+    Model model = { 0 };
+    model.transform = original.transform;
+    model.meshCount = original.meshCount;
+    model.meshes = (Mesh *)RL_CALLOC(model.meshCount, sizeof(Mesh));
+
+    // expand meshes
+    for(int i = 0; i < model.meshCount; i ++) {
+        model.meshes[i] = ExpandMesh(original.meshes[i], expandScale);
+    }
+
+    // materials because IDK if it will crash without them
+    model.materialCount = 1;
+    model.materials = (Material *)RL_CALLOC(model.materialCount, sizeof(Material));
+    model.materials[0] = LoadMaterialDefault();
+
+    model.meshMaterial = (int *)RL_CALLOC(model.meshCount, sizeof(int));
+
+    return model;
+}
+
+MapModel MakeMapModel(Model original, PLIST_(Model) * modelListPtr) {
+    MapModel mm = { original };
+    PLIST_(Model) modelList = *modelListPtr;
+    
+    LIST_ADD(modelList, &original);
+
+    for(int i = 0; i < ACTOR_SIZE_COUNT; i ++) {
+        Model expanded = ExpandModel(original, ACTOR_SIZE_VECTORS[i]);
+        mm.expanded[i] = expanded;
+        LIST_ADD(modelList, &expanded);
+    }
+
+    *modelListPtr = modelList;
+
+    return mm;
 }

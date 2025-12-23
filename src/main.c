@@ -49,11 +49,8 @@ int CompareCamDistance(ecs_entity_t e1, const void * v1, ecs_entity_t e2, const 
 
 ecs_entity_t Billboards[SPRITE_COUNT];
 
-float GetElevation(float x, float y, float z);
-
 DECLARE_PLIST(Image);
 DECLARE_PLIST(Texture2D);
-DECLARE_PLIST(Model);
 
 int main () {
 
@@ -123,27 +120,31 @@ int main () {
     PLIST_(Model) model_res_list = NEWPLIST(Model);
 
     // plain
+    printf("LOAD PLAIN\n");
 	Model model_plain = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
 	model_plain.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
 
-    LIST_ADD(model_res_list, &model_plain);
+    MapModel map_plain = MakeMapModel(model_plain, &model_res_list);
 
     // block
-    Model model_block = LoadModelFromMesh(GenMeshCube(1.0f, 1.0f, 1.0f));
-	model_block.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_brick;
+    printf("LOAD BLOCK\n");
+    //Model model_block = LoadModelFromMesh(GenMeshCube(1.0f, 1.0f, 3.0f));
+	//model_block.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_brick;
+    Model model_block = LoadModel("Small pillar.glb");
 
-    LIST_ADD(model_res_list, &model_block);
+    MapModel map_block = MakeMapModel(model_block, &model_res_list);
 
     // skybox
+    printf("LOAD SKYBOX\n");
     Model model_skybox = LoadModelFromMesh(GenMeshInvertedCube(16, 16, 16));
 	model_skybox.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_sky;
 
-    LIST_ADD(model_res_list, &model_skybox);
+    MapModel map_skybox = MakeMapModel(model_skybox, &model_res_list);
 
     // model entities
     // plain
     ecs_entity_t map_entity = ecs_new(world);
-    ecs_set(world, map_entity, MapModel, { model_plain });
+    ecs_set_ptr(world, map_entity, MapModel, &map_plain);
     ecs_set(world, map_entity, ModelTransform, { .scale = unit_vector });
 
     // create blocks
@@ -156,10 +157,6 @@ int main () {
             GetRandomFloat(0, 1, 1000)
         };
 
-        Vector3 scale = {
-            1.0f, 1.0f, GetRandomFloat(1, 3, 1000)
-        };
-
         Vector3 rotationAxis = {
             GetRandomFloat(-1, 1, 1000),
             GetRandomFloat(-1, 1, 1000),
@@ -169,10 +166,15 @@ int main () {
         float rotationAngle = GetRandomFloat(-30, 30, 1000);
 
 
-        ecs_set(world, block_entity, MapModel, { model_block });
-        ecs_set(world, block_entity, ModelTransform, { .position = position, .scale = scale,
+        ecs_set_ptr(world, block_entity, MapModel, &map_block);
+        ecs_set(world, block_entity, ModelTransform, { .position = position, .scale = unit_vector,
             .rotationAxis = rotationAxis, .rotationAngle = rotationAngle });
     }
+
+    // skybox
+    ecs_entity_t skybox_entity = ecs_new(world);
+    ecs_set_ptr(world, skybox_entity, MapModel, &map_skybox);
+    ecs_set(world, skybox_entity, ModelTransform, { .scale = unit_vector });
 
     // sprite billboard prefabs
     for(int i = SPRITE_RED; i <= SPRITE_PURPLE; i ++) {
@@ -185,7 +187,7 @@ int main () {
             &fulltex,                                       // tex
             (Rectangle){ i * tilew, 0.0f, tilew, tileh},    // source
             (Vector2){ 1.0f, 1.0f },                        // size
-            (Vector2){ 0.5, 0.0f },                         // origin
+            (Vector2){ 0.5, ACTOR_SIZE_VECTORS[ACTOR_SIZE_SMALL].z },                         // origin
             WHITE,                                          // tint
 
         });
@@ -196,21 +198,16 @@ int main () {
         int bb = GetRandomValue(SPRITE_RED, SPRITE_PURPLE);
         ecs_entity_t inst = ecs_new_w_pair(world, EcsIsA, Billboards[bb]);
         ecs_set(world, inst, CamDistance, { 0 });
-        ecs_set(world, inst, Actor, { .radius = 0.5f, .hitHeight = 0.5f });
+        ecs_set(world, inst, Actor, { .size = ACTOR_SIZE_SMALL });
 
         float x = GetRandomFloat(-8, 8, 1000);
         float y = GetRandomFloat(-8, 8, 1000);
-        float z = GetElevation(x, y, 16.0f);
+        float z = GetElevation(x, y, 16.0f, ACTOR_SIZE_SMALL);
         if(z == FLT_MAX)
             z = 0.0f;
 
         ecs_set(world, inst, Position, { x, y, z });
     }
-
-    // skybox
-    ecs_entity_t skybox_entity = ecs_new(world);
-    ecs_set(world, skybox_entity, MapModel, { model_skybox});
-    ecs_set(world, skybox_entity, ModelTransform, { .scale = unit_vector });
 	
 	DisableCursor();
 
@@ -255,7 +252,7 @@ int main () {
         keymove = Vector2Rotate(keymove, camAngle);
 
         Ray mouseRay = GetScreenToWorldRay(GetMousePosition(), camera);
-        RayCollision mouseHit = RayToModels(mouseRay);
+        RayCollision mouseHit = RayToModels(mouseRay, ACTOR_SIZE_POINT);
 		
 		// Draw
         //----------------------------------------------------------------------------------
@@ -275,10 +272,13 @@ int main () {
                     // inner loop
                     for(int i = 0; i < it.count; i ++) {
                         Model model = models[i].model;
+                        //Model exmodel = models[i].expanded[1];
                         ModelTransform transform = transforms[i];
 
                         DrawModelEx(model, transform.position, transform.rotationAxis,
                             transform.rotationAngle, transform.scale, WHITE);
+                        //DrawModelWiresEx(exmodel, transform.position, transform.rotationAxis,
+                        //    transform.rotationAngle, transform.scale, RED);
                     }
                 }
 

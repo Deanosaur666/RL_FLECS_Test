@@ -1,4 +1,6 @@
 
+SEPERATE QUERY FOR DIFFERENT SIZES
+
 Fix up move and slide
 Moving up slopes in 3D??
 
