@@ -32,10 +32,13 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size) {
             ModelTransform transform = transforms[i];
 
             Matrix matTransform = MatrixFromTransform(transform);
-
             // Check ray collision against bounding box first, before trying the full ray-mesh test
-            //RayCollision boxHitInfo = GetRayCollisionBox(ray, GetMeshBoundingBox(model.meshes[0]));
-            //if ((boxHitInfo.hit) && (boxHitInfo.distance < collision.distance))
+            BoundingBox meshBox = GetMeshBoundingBox(model.meshes[0]);
+            meshBox.min = Vector3Transform(meshBox.min, matTransform);
+            meshBox.max = Vector3Transform(meshBox.max, matTransform);
+
+            RayCollision boxHitInfo = GetRayCollisionBox(ray, meshBox);
+            if ((boxHitInfo.hit) && (boxHitInfo.distance < collision.distance))
             {
                 // Check ray collision against model meshes
                 RayCollision meshHitInfo = { 0 };
@@ -418,6 +421,10 @@ Model ExpandModel(Model original,Vector3 expandScale) {
     }
 
     // materials because IDK if it will crash without them
+    model.materialCount = 0;
+
+    return model;
+
     model.materialCount = 1;
     model.materials = (Material *)RL_CALLOC(model.materialCount, sizeof(Material));
     model.materials[0] = LoadMaterialDefault();
@@ -428,16 +435,16 @@ Model ExpandModel(Model original,Vector3 expandScale) {
     return model;
 }
 
-MapModelCollection MakeMapModelCollection(Model original, PLIST_(Model) * modelListPtr) {
+MapModelCollection MakeMapModelCollection(Model original, LIST_(Model) * modelListPtr) {
     MapModelCollection mm = { original };
-    PLIST_(Model) modelList = *modelListPtr;
+    LIST_(Model) modelList = *modelListPtr;
     
-    LIST_ADD(modelList, &original);
+    LIST_ADD(modelList, original);
 
     for(int i = 0; i < ACTOR_SIZE_COUNT; i ++) {
         Model expanded = ExpandModel(original, ACTOR_SIZE_VECTORS[i]);
         mm.expanded[i] = expanded;
-        LIST_ADD(modelList, &expanded);
+        LIST_ADD(modelList, expanded);
     }
 
     *modelListPtr = modelList;

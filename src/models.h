@@ -5,7 +5,7 @@
 #include "main.h"
 #include "actors.h"
 
-DECLARE_PLIST(Model);
+DECLARE_LIST(Model);
 
 #define MapModel_(size) MapModel_##size
 
@@ -40,7 +40,7 @@ Mesh GenMeshInvertedCube(float width, float depth, float height);
 Mesh ExpandMesh(Mesh original, Vector3 expandScale);
 Model ExpandModel(Model original,Vector3 expandScale);
 
-MapModelCollection MakeMapModelCollection(Model original, PLIST_(Model) * modelList);
+MapModelCollection MakeMapModelCollection(Model original, LIST_(Model) * modelList);
 
 RayCollision RayToModels(Ray ray, ACTOR_SIZE size);
 

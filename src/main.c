@@ -135,7 +135,7 @@ int main () {
 
     // models
 
-    PLIST_(Model) model_res_list = NEWPLIST(Model);
+    LIST_(Model) model_res_list = NEWLIST(Model);
 
     // plain
     printf("LOAD PLAIN\n");
@@ -226,7 +226,7 @@ int main () {
         ecs_set(world, inst, Position, { x, y, z });
     }
 	
-	DisableCursor();
+	//DisableCursor();
 
     ecs_query_t * q_billboards = ecs_query(world, {
         .terms = {
@@ -368,7 +368,7 @@ int main () {
     }
     for(int i = 0; i < model_res_list.size; i ++) {
         printf("%d\n", i);
-        UnloadModel(*LIST_GET(model_res_list, i));
+        UnloadModel(LIST_GET(model_res_list, i));
     }
 
     // destroy the window and cleanup the OpenGL context
