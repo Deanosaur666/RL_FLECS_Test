@@ -15,7 +15,7 @@ Matrix MatrixFromTransform(ModelTransform t) {
     return matTransform;
 }
 
-RayCollision RayToModels(Ray ray, ACTOR_SIZE size) {
+RayCollision RayToModels(Ray ray, ACTOR_SIZE size, float distance) {
 	RayCollision collision = { 0 };
 	collision.distance = FLT_MAX;
 	collision.hit = false;
@@ -42,8 +42,7 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size) {
             box.max = Vector3Transform(box.max, matTransform);
 
             RayCollision boxHitInfo = GetRayCollisionBox(ray, box);
-            if ((boxHitInfo.hit) && (boxHitInfo.distance < collision.distance))
-            {
+            if ((boxHitInfo.hit)) {// && (boxHitInfo.distance < distance) && (boxHitInfo.distance < collision.distance))
                 // Check ray collision against model meshes
                 RayCollision meshHitInfo = { 0 };
                 for (int m = 0; m < model.meshCount; m++)
@@ -54,18 +53,14 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size) {
                         box.max = Vector3Transform(box.max, matTransform);
                         boxHitInfo = GetRayCollisionBox(ray, box);
                     }
-                    if ((boxHitInfo.hit) && (boxHitInfo.distance < collision.distance)) {
-                        
+                    if ((boxHitInfo.hit)) {// && (boxHitInfo.distance < distance) && (boxHitInfo.distance < collision.distance)) {
+
                         meshHitInfo = GetRayCollisionMesh(ray, model.meshes[m], matTransform);
                         float hitAngle = Vector3Angle(ray.direction, meshHitInfo.normal)*RAD2DEG;
 
-                        if (meshHitInfo.hit && hitAngle >= 90.0f)
+                        if (meshHitInfo.hit && hitAngle >= 90.0f && (meshHitInfo.distance < distance) && (meshHitInfo.distance < collision.distance))
                         {
-                            // Save the closest hit mesh
-                            if ((!collision.hit) || (collision.distance > meshHitInfo.distance))
-                                collision = meshHitInfo;
-
-                            break;  // Stop once one mesh collision is detected, the colliding mesh is m
+                            collision = meshHitInfo;
                         }
                     }
                 }
@@ -78,7 +73,7 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size) {
 
 float GetElevation(float x, float y, float z, ACTOR_SIZE size) {
     Ray ray = { {x, y, z}, down };
-    RayCollision collision = RayToModels(ray, size);
+    RayCollision collision = RayToModels(ray, size, FLT_MAX);
 
     if(collision.hit) {
         return collision.point.z;

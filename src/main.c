@@ -182,7 +182,7 @@ int main () {
             &fulltex,                                       // tex
             (Rectangle){ i * tilew, 0.0f, tilew, tileh},    // source
             (Vector2){ 1.0f, 1.0f },                        // size
-            (Vector2){ 0.5, ACTOR_SIZE_VECTORS[ACTOR_SIZE_SMALL].z + ACTOR_HIT_MARGIN },                         // origin
+            (Vector2){ 0.5, ACTOR_SIZE_VECTORS[ACTOR_SIZE_SMALL].z},                         // origin
             WHITE,                                          // tint
 
         });
@@ -197,7 +197,7 @@ int main () {
 
         float x = GetRandomFloat(-8, 8, 1000);
         float y = GetRandomFloat(-8, 8, 1000);
-        float z = GetElevation(x, y, 16.0f, ACTOR_SIZE_SMALL);
+        float z = GetElevation(x, y, 16.0f, ACTOR_SIZE_SMALL) + ACTOR_HIT_MARGIN;
         if(z == FLT_MAX)
             z = 0.0f;
 
@@ -247,7 +247,7 @@ int main () {
         keymove = Vector2Rotate(keymove, camAngle);
 
         Ray mouseRay = GetScreenToWorldRay(GetMousePosition(), camera);
-        RayCollision mouseHit = RayToModels(mouseRay, ACTOR_SIZE_POINT);
+        RayCollision mouseHit = RayToModels(mouseRay, ACTOR_SIZE_POINT, FLT_MAX);
 		
 		// Draw
         //----------------------------------------------------------------------------------

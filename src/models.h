@@ -89,7 +89,7 @@ MapModelCollection MakeMapModelCollection(Model original, LIST_(Model) * modelLi
 
 MapBoxes GetMapBoxes(Model model);
 
-RayCollision RayToModels(Ray ray, ACTOR_SIZE size);
+RayCollision RayToModels(Ray ray, ACTOR_SIZE size, float distance);
 
 float GetElevation(float x, float y, float z, ACTOR_SIZE size);
 

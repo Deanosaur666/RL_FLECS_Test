@@ -3,6 +3,12 @@
 #include "main.h"
 #include "models.h"
 
+#define VECTOR_IS_NAN(vector) \
+(isnan(vector.x) || isnan(vector.y) || isnan(vector.z))
+
+#define VECTOR_PTR_IS_NAN(vector) \
+(isnan(vector->x) || isnan(vector->y) || isnan(vector->z))
+
 Vector3 ACTOR_SIZE_VECTORS[ACTOR_SIZE_COUNT] = {
     (Vector3){ 0.0f, 0.0f, 0.0f }, // point
     (Vector3){ ACTOR_SMALL_R, ACTOR_SMALL_R, ACTOR_SMALL_Ho2 }
@@ -13,126 +19,90 @@ Vector3 gravity = { 0.0f, 0.0f, -9.8f / 60.0f };
 Vector2 PickPerpendicular(Vector2 myDir, Vector2 wallDir);
 
 void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
-    // first move
-    *position = MoveAndSlideActor(*actor, *position, movement);
-    // then apply gravity
+
+    Vector3 move3D = V2toV3(movement, 0);
+
+    // apply gravity
     actor->velocity = Vector3Add(actor->velocity, gravity);
-
-    // then check ground
+    
+    // then check the ground
     Vector3 hitcore = *position;
-    hitcore.z += 0.1;
-    RayCollision groundhit = RayToModels((Ray) { hitcore, down }, actor->size);
-    groundhit.distance -= 0.1;
+    hitcore.z += ACTOR_HIT_MARGIN;
+    RayCollision groundhit = RayToModels((Ray) { hitcore, down }, actor->size, ACTOR_HIT_MARGIN*2);
+    groundhit.distance -= ACTOR_HIT_MARGIN;
 
-    float velDist = Vector3Length(actor->velocity);
+    Vector3 groundNormal = up;
 
     // snap up to terrain
-    if(groundhit.hit && groundhit.distance <= 0.1) {
+    if(groundhit.hit && groundhit.distance <= ACTOR_HIT_MARGIN) {
+
+        groundNormal = groundhit.normal;
+        
+        // tilt vector
+        move3D = Vector2InPlane(movement, groundNormal);
+
         position->z -= groundhit.distance;
         if(actor->velocity.z < 0) {
-            actor->velocity = (Vector3){ 0 };
-            //printf("STOP!\t%2.2f\t%p\n", groundhit.distance, actor);
+            actor->velocity = (Vector3){ 0.0f, 0.0f, 0.0f };
         }
 
+        // jump
         if(IsKeyPressed(KEY_SPACE)) {
-            actor->velocity = Vector3Scale(groundhit.normal, 0.75f);
-            //printf("JUMP!\n");
+            actor->velocity = Vector3Scale(groundNormal, 0.75f);
         }
     }
-    
-    if(velDist > 0) {
-        //printf("GO!\t%2.2f\t%p\n", groundhit.distance, actor);
 
-        RayCollision velHit = RayToModels((Ray) { *position, Vector3Normalize(actor->velocity) }, actor->size );
+    // add velocity
+    move3D = Vector3Add(move3D, actor->velocity);
 
-        if(velHit.hit && velHit.distance < velDist) {
-            //printf("OOF!\t%2.2f\t%p\n", velHit.distance, actor);
-            if(velHit.distance > 0) {
-                *position = Vector3Add(*position, Vector3Scale(Vector3Normalize(actor->velocity), velHit.distance));
-            }
-        }
-        else {
-            //printf("YAY!\t%2.2f\t%p\n", velHit.distance, actor);
-            *position = Vector3Add(*position, actor->velocity);
+    float moveDist = Vector3Length(move3D);
+
+    // move and slide
+    if(moveDist > 0.0f) {
+        RayCollision c = { 0 };
+        float realMoveDist = MoveActor(actor, position, hitcore, move3D, &c);
+        
+        float reminaingMove = moveDist - realMoveDist;
+        // only slide if 2D movement is non-zero
+        if(c.hit && reminaingMove > 0 && Vector2Length(movement) > 0) {
+            
+            Vector2 perp = PickPerpendicular(V3toV2(move3D), V3toV2(c.normal));
+            float slideDist = reminaingMove * cos(Vector2Angle(V3toV2(move3D), perp));
+            
+            Vector2 slide = Vector2Scale(perp, slideDist);
+            Vector3 slide3D = Vector2InPlane(slide, groundNormal);
+            Vector3 slideNormal = Vector3Normalize(slide3D);
+
+            MoveActor(actor, position, hitcore, slide3D, NULL);
         }
     }
 }
 
-Position MoveActor(Actor actor, Position position, Vector2 movement, RayCollision * hit) {
+float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 movement, RayCollision * rc) {
+    float moveDist = Vector3Length(movement);
+    Vector3 moveNormal = Vector3Normalize(movement);
+    Ray ray = { hitcore, moveNormal };
+    RayCollision c = RayToModels(ray, actor->size, moveDist + ACTOR_HIT_MARGIN*2);
+    if(rc != NULL)
+        *rc = c;
 
-    Vector2 moveNormal = Vector2Normalize(movement);
-    float moveDist = Vector2Length(movement);
-    if(moveDist <= 0) {
-        *hit = (RayCollision){ 0 };
-        return position;
-    }
+    if(c.hit && c.distance <= moveDist + ACTOR_HIT_MARGIN) {
 
-    Vector3 move3D = V2toV3(moveNormal, 0);
+        float realMoveDist = c.distance - ACTOR_HIT_MARGIN;
+        if(realMoveDist > 0) {
+            Vector3 realMove = Vector3Scale(moveNormal, realMoveDist);
+            *position = Vector3Add(*position, realMove);
 
-    Vector3 hitcore = position;
-    hitcore.z += 0.1;
-
-    RayCollision groundhit = RayToModels((Ray) { hitcore, down }, actor.size);
-
-    if(groundhit.hit && groundhit.distance <= 0.1) {
-        move3D = Vector2InPlane(moveNormal, groundhit.normal);
-    }
-    
-    // center ray
-    Ray ray = { position, move3D };
-
-    RayCollision c = RayToModels(ray, actor.size);
-
-    if(moveDist >= c.distance) {
-        
-        /*
-        DrawRay(ray, RED);
-        */
-
-        if(hit != NULL) {
-            *hit = c;
+            return realMoveDist; // we moved a partial distance
         }
-        if(c.distance < 0) {
-            return position;
-        }
-
-        Vector3 realMove = Vector3Scale(move3D, c.distance);
-        return Vector3Add(position, realMove);
+        else
+            return 0.0f; // no movement
     }
+    // movement vector is completely free
     else {
-        
-        /*
-        DrawRay(ray, WHITE);
-        */
+        *position = Vector3Add(*position, movement);
 
-        if(hit != NULL) {
-            c.hit = false;
-            *hit = c;
-        }
-        return Vector3Add(position, Vector3Scale(move3D, moveDist));
-    }
-}
-
-Position MoveAndSlideActor(Actor actor, Position position, Vector2 movement) {
-    RayCollision c;
-    float moveDist = Vector2Length(movement);
-    Position newPos = MoveActor(actor, position, movement, &c);
-    
-    // how much did we fail to move?
-    float remaining = moveDist - (c.distance >= 0.0f ? c.distance : 0.0f);
-    // try to slide
-    if(c.hit && remaining > 0) {
-
-        Vector2 perp = PickPerpendicular( movement, V3toV2(c.normal));
-        // USE SCALAR PROJECTION
-        float slideDist = remaining * cos(Vector2Angle(movement, perp));
-        
-        Vector2 slide = Vector2Scale(perp, slideDist );
-        
-        return MoveActor(actor, newPos, slide, NULL);
-    }
-    else {
-        return newPos;
+        return moveDist; // we moved the full distance
     }
 }
 
@@ -155,5 +125,5 @@ Vector2 PickPerpendicular(Vector2 myDir, Vector2 wallDir) {
 
 Vector3 Vector2InPlane(Vector2 vec, Vector3 normal) {
     float z = -(normal.x * (vec.x) + normal.y * (vec.y))/normal.z;
-    return Vector3Normalize((Vector3){ vec.x, vec.y, z });
+    return Vector3Scale(Vector3Normalize((Vector3){ vec.x, vec.y, z }), Vector2Length(vec));
 }
