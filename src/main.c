@@ -63,32 +63,10 @@ int main () {
     ECS_COMPONENT(world, ModelTransform);
     ECS_COMPONENT(world, Actor);
 
-    ECS_COMPONENT(world, MapModel);
-    ECS_COMPONENT(world, MapModel_ACTOR_SIZE_POINT);
-    ECS_COMPONENT(world, MapModel_ACTOR_SIZE_SMALL);
+    ECS_MAP_COMPONENTS();
+    ECS_MAP_QUERIES();
 
     ECS_SYSTEM(world, SetCamDistance, EcsOnUpdate, CamDistance, Position);
-
-    q_MapModel = ecs_query(world, {
-        .terms = {
-            { ecs_id(MapModel) }, { ecs_id(ModelTransform) }
-        },
-        .cache_kind = EcsQueryCacheAll,
-    });
-
-    q_MapModelEx[ACTOR_SIZE_POINT] = ecs_query(world, {
-        .terms = {
-            { ecs_id(MapModel_ACTOR_SIZE_POINT) }, { ecs_id(ModelTransform) }
-        },
-        .cache_kind = EcsQueryCacheAll,
-    });
-    
-    q_MapModelEx[ACTOR_SIZE_SMALL] = ecs_query(world, {
-        .terms = {
-            { ecs_id(MapModel_ACTOR_SIZE_SMALL) }, { ecs_id(ModelTransform) }
-        },
-        .cache_kind = EcsQueryCacheAll,
-    });
 
 
 	// Tell the window to use vsync and work on high DPI displays
@@ -204,7 +182,7 @@ int main () {
             &fulltex,                                       // tex
             (Rectangle){ i * tilew, 0.0f, tilew, tileh},    // source
             (Vector2){ 1.0f, 1.0f },                        // size
-            (Vector2){ 0.5, ACTOR_SIZE_VECTORS[ACTOR_SIZE_SMALL].z },                         // origin
+            (Vector2){ 0.5, ACTOR_SIZE_VECTORS[ACTOR_SIZE_SMALL].z + ACTOR_HIT_MARGIN },                         // origin
             WHITE,                                          // tint
 
         });

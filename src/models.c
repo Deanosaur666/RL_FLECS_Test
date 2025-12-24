@@ -26,34 +26,47 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size) {
     while (ecs_query_next(&it))  {
         MapModel *models = ecs_field(&it, MapModel, 0);
         ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
+        MapBoxes *boxes = ecs_field(&it, MapBoxes, 2);
 
         for(int i = 0; i < it.count; i ++) {
             Model model = models[i];
             ModelTransform transform = transforms[i];
 
+            MapBoxes modelBoxes = boxes[i];
+
+            BoundingBox box = modelBoxes.modelBox;
+
             Matrix matTransform = MatrixFromTransform(transform);
             // Check ray collision against bounding box first, before trying the full ray-mesh test
-            BoundingBox meshBox = GetMeshBoundingBox(model.meshes[0]);
-            meshBox.min = Vector3Transform(meshBox.min, matTransform);
-            meshBox.max = Vector3Transform(meshBox.max, matTransform);
+            box.min = Vector3Transform(box.min, matTransform);
+            box.max = Vector3Transform(box.max, matTransform);
 
-            RayCollision boxHitInfo = GetRayCollisionBox(ray, meshBox);
+            RayCollision boxHitInfo = GetRayCollisionBox(ray, box);
             if ((boxHitInfo.hit) && (boxHitInfo.distance < collision.distance))
             {
                 // Check ray collision against model meshes
                 RayCollision meshHitInfo = { 0 };
                 for (int m = 0; m < model.meshCount; m++)
-                {
-                    meshHitInfo = GetRayCollisionMesh(ray, model.meshes[m], matTransform);
-                    float hitAngle = Vector3Angle(ray.direction, meshHitInfo.normal)*RAD2DEG;
+                {  
+                    if(m != 0) {
+                        box = modelBoxes.meshBoxes[m];
+                        box.min = Vector3Transform(box.min, matTransform);
+                        box.max = Vector3Transform(box.max, matTransform);
+                        boxHitInfo = GetRayCollisionBox(ray, box);
+                    }
+                    if ((boxHitInfo.hit) && (boxHitInfo.distance < collision.distance)) {
+                        
+                        meshHitInfo = GetRayCollisionMesh(ray, model.meshes[m], matTransform);
+                        float hitAngle = Vector3Angle(ray.direction, meshHitInfo.normal)*RAD2DEG;
 
-                    if (meshHitInfo.hit && hitAngle >= 90.0f)
-                    {
-                        // Save the closest hit mesh
-                        if ((!collision.hit) || (collision.distance > meshHitInfo.distance))
-                            collision = meshHitInfo;
+                        if (meshHitInfo.hit && hitAngle >= 90.0f)
+                        {
+                            // Save the closest hit mesh
+                            if ((!collision.hit) || (collision.distance > meshHitInfo.distance))
+                                collision = meshHitInfo;
 
-                        break;  // Stop once one mesh collision is detected, the colliding mesh is m
+                            break;  // Stop once one mesh collision is detected, the colliding mesh is m
+                        }
                     }
                 }
             }
@@ -450,4 +463,27 @@ MapModelCollection MakeMapModelCollection(Model original, LIST_(Model) * modelLi
     *modelListPtr = modelList;
 
     return mm;
+}
+
+MapBoxes GetMapBoxes(Model model) {
+    MapBoxes boxes = { 0 };
+    // REMEMBER TO FREE
+    boxes.meshBoxes = (BoundingBox *)malloc(model.meshCount * sizeof(BoundingBox));
+
+    Vector3 minVertex = { 0 };
+    Vector3 maxVertex = { 0 };
+
+    for(int i = 0; i < model.meshCount; i ++) {
+        boxes.meshBoxes[i] = GetMeshBoundingBox(model.meshes[i]);
+
+        minVertex = Vector3Min(minVertex, boxes.meshBoxes[i].min);
+        maxVertex = Vector3Max(maxVertex, boxes.meshBoxes[i].max);
+    }
+    BoundingBox modelBox = { 0 };
+    modelBox.min = minVertex;
+    modelBox.max = maxVertex;
+    
+    boxes.modelBox = modelBox;
+
+    return boxes;
 }

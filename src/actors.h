@@ -13,6 +13,8 @@ typedef enum  {
 
 extern Vector3 ACTOR_SIZE_VECTORS[ACTOR_SIZE_COUNT];
 
+#define ACTOR_HIT_MARGIN 0.1f
+
 #define ACTOR_SMALL_R 0.25f
 #define ACTOR_SMALL_Ho2 ((14.0f / 16.0f) / 2.0f)
 
