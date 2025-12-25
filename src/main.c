@@ -197,7 +197,7 @@ int main () {
 
         float x = GetRandomFloat(-8, 8, 1000);
         float y = GetRandomFloat(-8, 8, 1000);
-        float z = GetElevation(x, y, 2.0f, ACTOR_SIZE_SMALL) + ACTOR_HIT_MARGIN;
+        float z = GetElevation(x, y, 8.0f, ACTOR_SIZE_SMALL) + ACTOR_HIT_MARGIN;
         if(z == FLT_MAX)
             z = 0.0f;
 
@@ -287,9 +287,10 @@ int main () {
                         ModelTransform transform = transforms[i];
                         BoundingBox box = boxes[i].modelBox;
 #if DRAWWIRES
+                        Color colors[] = {RED, WHITE, GREEN };
                         Model model = models[i];
                         DrawModelWiresEx(model, transform.position, transform.rotationAxis,
-                            transform.rotationAngle, transform.scale, RED);
+                            transform.rotationAngle, transform.scale, colors[ i % 3]);
 #endif
 #if DRAWBBOX
                         Matrix matTransform = MatrixFromTransform(transform);

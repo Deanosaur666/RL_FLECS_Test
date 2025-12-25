@@ -101,6 +101,10 @@ Mesh GenMeshPlane2(float width, float length, int resX, int resY) {
 
 			float zPos = (float)GetRandomValue(0, 16);
 			zPos /= 16.0f;
+            zPos = 0.0f;
+
+            zPos /= 2;
+            zPos += fabsf(length/2 - y)/2;// - fmodf(y, x/2 + 1);
 
             vertices[x + y*resX] = (Vector3){ xPos, yPos, zPos };
         }

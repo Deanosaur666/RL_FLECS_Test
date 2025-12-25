@@ -1,4 +1,7 @@
 
+Model expansion leaves holes in models sometimes. Especially smooth slopes (jagged random slopes don't do this)
+However, this still doesn't account for ALL falling through the ground...
+
 Jumping against walls gives a huge speed boost
 
 
