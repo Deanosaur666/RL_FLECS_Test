@@ -1,15 +1,5 @@
 
-SAVE MESH BOUNDING BOXES
-
-Fix up move and slide
-Moving up slopes in 3D??
-
-Actors get stuck
-When everyone is moving and jumping at the same time, hits 30fps
-
-DEBUG MODE:
-Draw meshes
-Draw Bounding BOXES
+Jumping against walls gives a huge speed boost
 
 
 PLANS

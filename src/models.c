@@ -57,7 +57,7 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size, float distance) {
                         meshHitInfo = GetRayCollisionMesh(ray, model.meshes[m], matTransform);
                         float hitAngle = Vector3Angle(ray.direction, meshHitInfo.normal)*RAD2DEG;
 
-                        if (meshHitInfo.hit && hitAngle >= 90.0f && (meshHitInfo.distance < distance) && (meshHitInfo.distance < collision.distance))
+                        if (meshHitInfo.hit && hitAngle >= 90.0f && (meshHitInfo.distance < collision.distance) && (meshHitInfo.distance < distance))
                         {
                             collision = meshHitInfo;
                         }
