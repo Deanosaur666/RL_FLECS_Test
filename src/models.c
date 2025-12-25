@@ -38,8 +38,7 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size, float distance) {
 
             Matrix matTransform = MatrixFromTransform(transform);
             // Check ray collision against bounding box first, before trying the full ray-mesh test
-            box.min = Vector3Transform(box.min, matTransform);
-            box.max = Vector3Transform(box.max, matTransform);
+            box = TransformBoundingBox(box, matTransform);
 
             RayCollision boxHitInfo = GetRayCollisionBox(ray, box);
             if ((boxHitInfo.hit)) {// && (boxHitInfo.distance < distance) && (boxHitInfo.distance < collision.distance))
@@ -47,7 +46,7 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size, float distance) {
                 RayCollision meshHitInfo = { 0 };
                 for (int m = 0; m < model.meshCount; m++)
                 {  
-                    if(m != 0) {
+                    if(model.meshCount > 1) {
                         box = modelBoxes.meshBoxes[m];
                         box.min = Vector3Transform(box.min, matTransform);
                         box.max = Vector3Transform(box.max, matTransform);
@@ -58,7 +57,7 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size, float distance) {
                         meshHitInfo = GetRayCollisionMesh(ray, model.meshes[m], matTransform);
                         float hitAngle = Vector3Angle(ray.direction, meshHitInfo.normal)*RAD2DEG;
 
-                        if (meshHitInfo.hit && hitAngle >= 90.0f && (meshHitInfo.distance < distance) && (meshHitInfo.distance < collision.distance))
+                        if (meshHitInfo.hit /*&& hitAngle >= 90.0f*/ && (meshHitInfo.distance < distance) && (meshHitInfo.distance < collision.distance))
                         {
                             collision = meshHitInfo;
                         }
@@ -429,9 +428,9 @@ Model ExpandModel(Model original,Vector3 expandScale) {
     }
 
     // materials because IDK if it will crash without them
-    model.materialCount = 0;
+    model.materialCount = 1;
 
-    return model;
+    //return model;
 
     model.materialCount = 1;
     model.materials = (Material *)RL_CALLOC(model.materialCount, sizeof(Material));
@@ -481,4 +480,39 @@ MapBoxes GetMapBoxes(Model model) {
     boxes.modelBox = modelBox;
 
     return boxes;
+}
+
+BoundingBox TransformBoundingBox(BoundingBox box, Matrix matTransform) {
+    
+    float west = box.min.x;
+    float east = box.max.x;
+    float south = box.min.y;
+    float north = box.max.y;
+    float bottom = box.min.z;
+    float top = box.max.z;
+
+    Vector3 eightCorners[] = {
+        { west, south, bottom },
+        { west, south, top },
+        { west, north, bottom },
+        { west, north, top },
+        { east, south, bottom },
+        { east, south, top },
+        { east, north, bottom },
+        { east, north, top }
+    };
+
+    Vector3 min = { FLT_MAX, FLT_MAX, FLT_MAX };
+    Vector3 max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
+    for(int i = 0; i < 8; i ++) {
+        Vector3 trans = Vector3Transform(eightCorners[i], matTransform);
+        min = Vector3Min(min, trans);
+        max = Vector3Max(max, trans);
+    }
+    
+    box.min = min;
+    box.max = max;
+
+    return box;
 }

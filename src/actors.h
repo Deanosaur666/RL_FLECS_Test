@@ -32,6 +32,7 @@ extern Vector3 gravity;
 #define PERPR(V2) (Vector2){ V2.y, -V2.x }
 
 void ActorPhysics(Actor * actor, Position * position, Vector2 movement);
+float MoveActorRayCollision(Actor * actor, Position * position, Vector3 movement, RayCollision c);
 float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 movement, RayCollision * c);
 Vector3 Vector2InPlane(Vector2 vec, Vector3 normal);
 

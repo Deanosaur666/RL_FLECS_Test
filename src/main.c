@@ -144,7 +144,7 @@ int main () {
     ecs_set(world, map_entity, ModelTransform, { .scale = unit_vector });
 
     // create blocks
-    for(int i = 0; i < 32; i ++) {
+    for(int i = 0; i < BLOCK_COUNT; i ++) {
         ecs_entity_t block_entity = ecs_new(world);
 
         Vector3 position = {
@@ -189,7 +189,7 @@ int main () {
     }
 
     // create billboard guys
-    for(int i = 0; i < 64; i ++) {
+    for(int i = 0; i < ACTOR_COUNT; i ++) {
         int bb = GetRandomValue(SPRITE_RED, SPRITE_PURPLE);
         ecs_entity_t inst = ecs_new_w_pair(world, EcsIsA, Billboards[bb]);
         ecs_set(world, inst, CamDistance, { 0 });
@@ -197,7 +197,7 @@ int main () {
 
         float x = GetRandomFloat(-8, 8, 1000);
         float y = GetRandomFloat(-8, 8, 1000);
-        float z = GetElevation(x, y, 16.0f, ACTOR_SIZE_SMALL) + ACTOR_HIT_MARGIN;
+        float z = GetElevation(x, y, 2.0f, ACTOR_SIZE_SMALL) + ACTOR_HIT_MARGIN;
         if(z == FLT_MAX)
             z = 0.0f;
 
@@ -275,24 +275,31 @@ int main () {
                 }
 
                 // draw model wires
-                /*
-                it = ecs_query_iter(world, q_MapModelEx[ACTOR_SIZE_SMALL]);
+#if DRAWWIRES || DRAWBBOX
+                it = ecs_query_iter(world, q_MapModelEx[DRAWEXMESHSIZE]);
                 while(ecs_query_next(&it)) {
                     MapModel *models = ecs_field(&it, MapModel, 0);
                     ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
+                    MapBoxes *boxes = ecs_field(&it, MapBoxes, 2);
                     
                     // inner loop
                     for(int i = 0; i < it.count; i ++) {
-                        Model model = models[i];
                         ModelTransform transform = transforms[i];
-
+                        BoundingBox box = boxes[i].modelBox;
+#if DRAWWIRES
+                        Model model = models[i];
                         DrawModelWiresEx(model, transform.position, transform.rotationAxis,
                             transform.rotationAngle, transform.scale, RED);
-                        //DrawModelEx(model, transform.position, transform.rotationAxis,
-                        //    transform.rotationAngle, transform.scale, WHITE);
+#endif
+#if DRAWBBOX
+                        Matrix matTransform = MatrixFromTransform(transform);
+                        // Check ray collision against bounding box first, before trying the full ray-mesh test
+                        box = TransformBoundingBox(box, matTransform);
+                        DrawBoundingBox(box, WHITE);
+#endif
                     }
                 }
-                */
+#endif 
 
                 if(mouseHit.hit) {
                     DrawCube(mouseHit.point, 0.3f, 0.3f, 0.3f, WHITE);

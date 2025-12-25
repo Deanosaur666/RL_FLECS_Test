@@ -28,13 +28,19 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
     // then check the ground
     Vector3 hitcore = *position;
     hitcore.z += ACTOR_HIT_MARGIN;
-    RayCollision groundhit = RayToModels((Ray) { hitcore, down }, actor->size, ACTOR_HIT_MARGIN*2);
+    RayCollision groundhit = RayToModels((Ray) { hitcore, down }, actor->size, FLT_MAX);
     groundhit.distance -= ACTOR_HIT_MARGIN;
 
     Vector3 groundNormal = up;
 
+    bool grounded = false;
+
     // snap up to terrain
     if(groundhit.hit && groundhit.distance <= ACTOR_HIT_MARGIN) {
+        
+        grounded = true;
+        
+        //printf("GROUND\t\t%f\n", groundhit.distance);
 
         groundNormal = groundhit.normal;
         
@@ -51,9 +57,18 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
             actor->velocity = Vector3Scale(groundNormal, 0.75f);
         }
     }
-
+    // not on ground
+    else {
+        //printf("AIR\t\t%f\n", groundhit.distance);
+    }
     // add velocity
     move3D = Vector3Add(move3D, actor->velocity);
+
+    if(!grounded && move3D.z < 0) {
+        Vector3 moveVertical = { 0.0f, 0.0f, move3D.z };
+        MoveActorRayCollision(actor, position, moveVertical, groundhit);
+        move3D.z = 0.0f;
+    }
 
     float moveDist = Vector3Length(move3D);
 
@@ -66,6 +81,8 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
         // only slide if 2D movement is non-zero
         if(c.hit && reminaingMove > 0 && Vector2Length(movement) > 0) {
             
+            actor->velocity = (Vector3) { 0.0f, 0.0f, actor->velocity.z };
+
             Vector2 perp = PickPerpendicular(V3toV2(move3D), V3toV2(c.normal));
             float slideDist = reminaingMove * cos(Vector2Angle(V3toV2(move3D), perp));
             
@@ -78,18 +95,15 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
     }
 }
 
-float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 movement, RayCollision * rc) {
+float MoveActorRayCollision(Actor * actor, Position * position, Vector3 movement, RayCollision c) {
+    
     float moveDist = Vector3Length(movement);
     Vector3 moveNormal = Vector3Normalize(movement);
-    Ray ray = { hitcore, moveNormal };
-    RayCollision c = RayToModels(ray, actor->size, moveDist + ACTOR_HIT_MARGIN*2);
-    if(rc != NULL)
-        *rc = c;
 
     if(c.hit && c.distance <= moveDist + ACTOR_HIT_MARGIN) {
 
         float realMoveDist = c.distance - ACTOR_HIT_MARGIN;
-        if(realMoveDist > 0) {
+        if(c.distance > ACTOR_HIT_MARGIN && realMoveDist > 0) {
             Vector3 realMove = Vector3Scale(moveNormal, realMoveDist);
             *position = Vector3Add(*position, realMove);
 
@@ -104,6 +118,17 @@ float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 mov
 
         return moveDist; // we moved the full distance
     }
+}
+
+float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 movement, RayCollision * rc) {
+    float moveDist = Vector3Length(movement);
+    Vector3 moveNormal = Vector3Normalize(movement);
+    Ray ray = { hitcore, moveNormal };
+    RayCollision c = RayToModels(ray, actor->size, moveDist + ACTOR_HIT_MARGIN*2);
+    if(rc != NULL)
+        *rc = c;
+    
+    return MoveActorRayCollision(actor, position, movement, c);
 }
 
 // not in header, since this likely will only be used in movement code

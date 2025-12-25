@@ -88,6 +88,7 @@ Model ExpandModel(Model original,Vector3 expandScale);
 MapModelCollection MakeMapModelCollection(Model original, LIST_(Model) * modelList);
 
 MapBoxes GetMapBoxes(Model model);
+BoundingBox TransformBoundingBox(BoundingBox box, Matrix matTransform);
 
 RayCollision RayToModels(Ray ray, ACTOR_SIZE size, float distance);
 
