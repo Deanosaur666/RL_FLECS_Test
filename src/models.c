@@ -104,7 +104,7 @@ Mesh GenMeshPlane2(float width, float length, int resX, int resY) {
             zPos = 0.0f;
 
             zPos /= 2;
-            zPos += fabsf(length/2 - y)/2;// - fmodf(y, x/2 + 1);
+            zPos += fabsf(length/2 - y)/2 - fmodf(y, x/2 + 1);
 
             vertices[x + y*resX] = (Vector3){ xPos, yPos, zPos };
         }
@@ -410,6 +410,13 @@ Mesh ExpandMesh(Mesh original, Vector3 expandScale) {
         //expand = Vector3Scale(expand, 1.0f / (float)count);
         //expand = Vector3Divide(expand, scale);
         expand = (Vector3){ expand.x / fabsf(scale.x), expand.y / fabsf(scale.y), expand.z / fabsf(scale.z) };
+        
+        if(isnan(expand.x))
+            expand.x = 0.0;
+        if(isnan(expand.y))
+            expand.y = 0.0;
+        if(isnan(expand.z))
+            expand.z = 0.0;
 
         *vert = Vector3Add(*vert, expand);
     }
