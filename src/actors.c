@@ -48,6 +48,7 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
         move3D = Vector2InPlane(movement, groundNormal);
 
         position->z -= groundhit.distance;
+        groundhit.distance = 0.0f;
         if(actor->velocity.z < 0) {
             actor->velocity = (Vector3){ 0.0f, 0.0f, 0.0f };
         }
@@ -64,7 +65,8 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
     // add velocity
     move3D = Vector3Add(move3D, actor->velocity);
 
-    if(!grounded && move3D.z < 0) {
+    // this lets them fall through the ground more
+    if(false && !grounded && move3D.z < 0) {
         Vector3 moveVertical = { 0.0f, 0.0f, move3D.z };
         MoveActorRayCollision(actor, position, moveVertical, groundhit);
         move3D.z = 0.0f;

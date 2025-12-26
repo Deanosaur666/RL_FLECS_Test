@@ -243,7 +243,7 @@ int main () {
         if(IsKeyDown(KEY_L))
             keymove.x += 1.0f;
         
-        keymove = Vector2Scale(keymove, 0.02f);
+        keymove = Vector2Scale(keymove, 0.06f);
         keymove = Vector2Rotate(keymove, camAngle);
 
         Ray mouseRay = GetScreenToWorldRay(GetMousePosition(), camera);
