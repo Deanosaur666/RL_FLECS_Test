@@ -1,7 +1,6 @@
 
-However, this still doesn't account for ALL falling through the ground...
-
-Jumping against walls gives a huge speed boost
+EXPANDED MESH IS ASSYMETRICAL FOR SYMMETRICAL V MESH
+How do we get them to not be stuck in walls, while also letting them jump when going downhill?
 
 
 PLANS

@@ -195,8 +195,8 @@ int main () {
         ecs_set(world, inst, CamDistance, { 0 });
         ecs_set(world, inst, Actor, { .size = ACTOR_SIZE_SMALL });
 
-        float x = GetRandomFloat(-8, 8, 1000);
-        float y = GetRandomFloat(-8, 8, 1000);
+        float x = GetRandomFloat(-7.5, 7.5, 1000);
+        float y = GetRandomFloat(-7.5, 7.5, 1000);
         float z = GetElevation(x, y, 8.0f, ACTOR_SIZE_SMALL) + ACTOR_HIT_MARGIN;
         if(z == FLT_MAX)
             z = 0.0f;
