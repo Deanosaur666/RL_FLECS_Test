@@ -231,7 +231,7 @@ int main () {
             UpdateCamera(&camera, CAMERA_FREE);
         
         float camAngle = atan2f(camera.target.y - camera.position.y, camera.target.x - camera.position.x);
-        camAngle += 90*RAD2DEG;
+        camAngle -= (90.0f*DEG2RAD);
 
         Vector2 keymove = {0};
         if(IsKeyDown(KEY_I))
@@ -243,7 +243,7 @@ int main () {
         if(IsKeyDown(KEY_L))
             keymove.x += 1.0f;
         
-        keymove = Vector2Scale(keymove, 0.06f);
+        keymove = Vector2Normalize(keymove);
         keymove = Vector2Rotate(keymove, camAngle);
 
         Ray mouseRay = GetScreenToWorldRay(GetMousePosition(), camera);
@@ -306,7 +306,7 @@ int main () {
                     DrawCube(mouseHit.point, 0.3f, 0.3f, 0.3f, WHITE);
                     DrawCubeWires(mouseHit.point, 0.3f, 0.3f, 0.3f, RED);
                     DrawLine3D(mouseHit.point, Vector3Add(mouseHit.point, mouseHit.normal), RED);
-                    DrawLine3D(mouseHit.point, Vector3Add(mouseHit.point, Vector2InPlane(V3toV2(north), mouseHit.normal)), GREEN);
+                    DrawLine3D(mouseHit.point, Vector3Add(mouseHit.point, GetTiltVector(V3toV2(north), mouseHit.normal)), GREEN);
                 }
 				
                 // draw billboards

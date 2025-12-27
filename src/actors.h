@@ -15,15 +15,18 @@ extern Vector3 ACTOR_SIZE_VECTORS[ACTOR_SIZE_COUNT];
 
 #define ACTOR_HIT_MARGIN 0.1f
 
-#define ACTOR_SMALL_R 0.25f
-#define ACTOR_SMALL_Ho2 ((14.0f / 16.0f) / 2.0f)
+#define ACTOR_SMALL_R 0.25f                         // xy radius
+#define ACTOR_SMALL_Ho2 ((14.0f / 16.0f) / 2.0f)    // z radius, height over 2
 
 typedef struct Actor {
     ACTOR_SIZE size;
     Vector3 velocity;
 } Actor;
 
+#define GRAVITY 9.8f / 360.0f // -9.8f / 60.0f
 extern Vector3 gravity;
+
+#define ACTOR_SPEED 0.06f
 
 #define V3toV2(V3) (Vector2){ V3.x, V3.y }
 #define V2toV3(V2, z) (Vector3){ V2.x, V2.y, z }
@@ -34,7 +37,7 @@ extern Vector3 gravity;
 void ActorPhysics(Actor * actor, Position * position, Vector2 movement);
 float MoveActorRayCollision(Actor * actor, Position * position, Vector3 movement, RayCollision c);
 float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 movement, RayCollision * c);
-Vector3 Vector2InPlane(Vector2 vec, Vector3 normal);
+Vector3 GetTiltVector(Vector2 vec, Vector3 normal);
 
 typedef enum {
     SPRITE_RED,
