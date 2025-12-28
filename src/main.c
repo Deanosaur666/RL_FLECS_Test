@@ -220,33 +220,69 @@ int main () {
         }
     });
 
+    Vector2 mousePos = GetMousePosition();
+    Vector2 lastMousePos = mousePos;
+
+
 	// game loop
 	while (!WindowShouldClose())		// run the loop untill the user presses ESCAPE or presses the Close button on the window
 	{
+        mousePos = GetMousePosition();
+        Vector2 mouseDelta = Vector2Subtract(mousePos, lastMousePos);
+
         float dt = GetFrameTime() * 60.0;
         Timer += dt;
         ecs_progress(world, dt);
+        
+        // rotate camera
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            float rotX = mouseDelta.x * 0.1 * DEG2RAD;
+            float rotY = mouseDelta.y * 0.1 * DEG2RAD;
+            
+            Vector3 camOffset = Vector3Subtract(camera.position, camera.target);
+            camOffset = Vector3RotateByAxisAngle(camOffset, up, -rotX);
 
-        if(IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))
-            UpdateCamera(&camera, CAMERA_FREE);
+            float angleY = Vector3Angle(camOffset, up);
+            if(rotY > 0 && angleY < 5.0f * DEG2RAD)
+                rotY = 0.0f;
+            else if(rotY < 0 && angleY > (180.0f - 5.0f) * DEG2RAD)
+                rotY = 0.0f;
+            camOffset = Vector3RotateByAxisAngle(camOffset, Vector3CrossProduct(camOffset, up), rotY);
+
+            camera.position = Vector3Add(camera.target, camOffset);
+        }
+        else if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+            Vector3 camOffset = Vector3Subtract(camera.position, camera.target);
+
+            Vector3 camRight = Vector3Normalize(Vector3CrossProduct(up, camOffset));
+            Vector3 camUp = Vector3Normalize(Vector3CrossProduct(camOffset, camRight));
+
+            float dx = -mouseDelta.x * 0.01;
+            float dy = mouseDelta.y * 0.01;
+
+            Vector3 dCamera = Vector3Add(Vector3Scale(camRight, dx), Vector3Scale(camUp, dy));
+
+            camera.position = Vector3Add(camera.position, dCamera);
+            camera.target = Vector3Add(camera.target, dCamera);
+        }
         
         float camAngle = atan2f(camera.target.y - camera.position.y, camera.target.x - camera.position.x);
         camAngle -= (90.0f*DEG2RAD);
 
         Vector2 keymove = {0};
-        if(IsKeyDown(KEY_I))
+        if(IsKeyDown(KEY_W))
             keymove.y += 1.0f;
-        if(IsKeyDown(KEY_K))
+        if(IsKeyDown(KEY_S))
             keymove.y -= 1.0;
-        if(IsKeyDown(KEY_J))
+        if(IsKeyDown(KEY_A))
             keymove.x -= 1.0f;
-        if(IsKeyDown(KEY_L))
+        if(IsKeyDown(KEY_D))
             keymove.x += 1.0f;
         
         keymove = Vector2Normalize(keymove);
         keymove = Vector2Rotate(keymove, camAngle);
 
-        Ray mouseRay = GetScreenToWorldRay(GetMousePosition(), camera);
+        Ray mouseRay = GetScreenToWorldRay(mousePos, camera);
         RayCollision mouseHit = RayToModels(mouseRay, ACTOR_SIZE_POINT, FLT_MAX);
 		
 		// Draw
@@ -341,6 +377,10 @@ int main () {
                 ActorPhysics( &a[i], &p[i], keymove );
             }
         }
+
+        lastMousePos = mousePos;
+
+        // end of frame
 	}
 
 	// cleanup

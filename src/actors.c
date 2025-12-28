@@ -18,10 +18,10 @@ Vector3 gravity = { 0.0f, 0.0f, -GRAVITY };
 
 Vector2 PickPerpendicular(Vector2 myDir, Vector2 wallDir);
 
-void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
+void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
 
-    movement = Vector2Scale(movement, ACTOR_SPEED);
-    Vector3 moveXY = V2toV3(movement, 0);
+    movedir = Vector2Scale(movedir, ACTOR_SPEED);
+    Vector3 moveXY = V2toV3(movedir, 0);
 
     // apply gravity
     actor->velocity = Vector3Add(actor->velocity, gravity);
@@ -51,7 +51,7 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
             groundNormal = groundhit.normal;
             
             // tilt vector
-            moveXY = GetTiltVector(movement, groundNormal);
+            moveXY = GetTiltVector(movedir, groundNormal);
         }
 
         // snap to terrain
@@ -86,9 +86,9 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
         RayCollision c = { 0 };
         float realMoveDist = MoveActor(actor, position, hitcore, moveXY, &c);
         
-        float reminaingMove = Vector2Length(movement) - realMoveDist;
+        float reminaingMove = Vector2Length(movedir) - realMoveDist;
         // only slide if 2D movement is non-zero
-        if(c.hit && reminaingMove > 0 && Vector2Length(movement) > 0) {
+        if(c.hit && reminaingMove > 0 && Vector2Length(movedir) > 0) {
             hitcore = *position;
             hitcore.z += ACTOR_HIT_MARGIN;
 
