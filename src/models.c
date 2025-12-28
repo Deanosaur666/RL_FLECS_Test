@@ -355,13 +355,13 @@ Mesh ExpandMesh(Mesh original, Vector3 expandScale) {
 
     // expansion
     Vector3 pushVectors[mesh.vertexCount];
-    memset(pushVectors, 0, mesh.vertexCount * sizeof(Vector3));
-    Vector3 pushScale[mesh.vertexCount];
-    memset(pushScale, 0, mesh.vertexCount * sizeof(Vector3));
+    for(int i = 0; i < mesh.vertexCount; i ++) {
+        pushVectors[i] = (Vector3){ 0.0f, 0.0f, 0.0f };
+    }
 
     for(int i = 0; i < mesh.triangleCount; i ++) {
         int ai, bi, ci;
-        Vector3 *a, *b, *c, edge1, edge2, normal, expand;
+        Vector3 *a, *b, *c, edge1, edge2, normal;
 
         if (mesh.indices)
         {
@@ -384,20 +384,14 @@ Mesh ExpandMesh(Mesh original, Vector3 expandScale) {
         edge2 = Vector3Subtract(*c, *a);
         normal = Vector3Normalize(Vector3CrossProduct(edge1, edge2));
 
-        expand = Vector3Multiply(normal, expandScale);
-
         // if this vertex is a duplicate, we instead go to the source
         ai = vertexDuplicates[ai] != -1 ? vertexDuplicates[ai] : ai;
         bi = vertexDuplicates[bi] != -1 ? vertexDuplicates[bi] : bi;
         ci = vertexDuplicates[ci] != -1 ? vertexDuplicates[ci] : ci;
 
-        pushVectors[ai] = Vector3Add(pushVectors[ai], expand);
-        pushVectors[bi] = Vector3Add(pushVectors[bi], expand);
-        pushVectors[ci] = Vector3Add(pushVectors[ci], expand);
-
-        pushScale[ai] = Vector3Add(pushScale[ai], normal);
-        pushScale[bi] = Vector3Add(pushScale[bi], normal);
-        pushScale[ci] = Vector3Add(pushScale[ci], normal);
+        pushVectors[ai] = Vector3Add(pushVectors[ai], normal);
+        pushVectors[bi] = Vector3Add(pushVectors[bi], normal);
+        pushVectors[ci] = Vector3Add(pushVectors[ci], normal);
     }
 
     for(int i = 0; i < mesh.vertexCount; i ++) {
@@ -405,18 +399,8 @@ Mesh ExpandMesh(Mesh original, Vector3 expandScale) {
         
         Vector3 * vert = &vertdata[i];
 
-        Vector3 expand = pushVectors[vi];
-        Vector3 scale = pushScale[vi];
-        //expand = Vector3Scale(expand, 1.0f / (float)count);
-        //expand = Vector3Divide(expand, scale);
-        expand = (Vector3){ expand.x / fabsf(scale.x), expand.y / fabsf(scale.y), expand.z / fabsf(scale.z) };
-        
-        if(isnan(expand.x))
-            expand.x = 0.0;
-        if(isnan(expand.y))
-            expand.y = 0.0;
-        if(isnan(expand.z))
-            expand.z = 0.0;
+        Vector3 expand = Vector3Normalize(pushVectors[vi]);
+        expand = Vector3Multiply(expand, expandScale);
 
         *vert = Vector3Add(*vert, expand);
     }
