@@ -11,6 +11,16 @@ typedef enum  {
     ACTOR_SIZE_COUNT
 } ACTOR_SIZE;
 
+typedef enum {
+    ACTOR_RED,
+    ACTOR_YELLOW,
+    ACTOR_GREEN,
+    ACTOR_PURPLE,
+    
+    ACTOR_CAT,
+    ACTOR_PURSUER,
+} ACTOR_TYPE;
+
 extern Vector3 ACTOR_SIZE_VECTORS[ACTOR_SIZE_COUNT];
 
 #define ACTOR_HIT_MARGIN 0.1f
@@ -20,6 +30,7 @@ extern Vector3 ACTOR_SIZE_VECTORS[ACTOR_SIZE_COUNT];
 
 typedef struct Actor {
     ACTOR_SIZE size;
+    ACTOR_TYPE type;
     Vector3 velocity;
 } Actor;
 
@@ -51,6 +62,9 @@ typedef enum {
     SPRITE_YELLOW,
     SPRITE_GREEN,
     SPRITE_PURPLE,
+
+    SPRITE_CAT,
+    SPRITE_PURSUER,
     
     SPRITE_REDCOIN,
     SPRITE_GREENCOIN,
@@ -71,8 +85,6 @@ typedef enum {
     SPRITE_PURPLEHIT_1,
     SPRITE_PURPLEHIT_2,
 
-    SPRITE_CAT,
-    SPRITE_PURSUER,
     SPRITE_BLOOD_0,
     SPRITE_BLOOD_1,
     SPRITE_BLOOD_2,
@@ -81,14 +93,5 @@ typedef enum {
 
     SPRITE_COUNT,
 } SPRITE;
-
-typedef enum {
-    ACTOR_RED,
-    ACTOR_YELLOW,
-    ACTOR_GREEN,
-    ACTOR_PURPLE,
-    ACTOR_CAT,
-    ACTOR_PURSUER,
-} ACTOR_TYPE;
 
 #endif

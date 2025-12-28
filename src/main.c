@@ -193,7 +193,7 @@ int main () {
         int bb = GetRandomValue(SPRITE_RED, SPRITE_PURPLE);
         ecs_entity_t inst = ecs_new_w_pair(world, EcsIsA, Billboards[bb]);
         ecs_set(world, inst, CamDistance, { 0 });
-        ecs_set(world, inst, Actor, { .size = ACTOR_SIZE_SMALL });
+        ecs_set(world, inst, Actor, { .size = ACTOR_SIZE_SMALL, .type = bb });
 
         float x = GetRandomFloat(-7.5, 7.5, 1000);
         float y = GetRandomFloat(-7.5, 7.5, 1000);
