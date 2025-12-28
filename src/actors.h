@@ -29,6 +29,10 @@ extern Vector3 gravity;
 #define ACTOR_SPEED 0.06f
 
 #define ACTOR_MAX_SPEED 0.06f
+#define ACTOR_AIR_MAX_SPEED ACTOR_MAX_SPEED/10.0f
+#define ACTOR_MIN_SPEED 0.001f // stop at this point
+#define ACTOR_ACCEL ACTOR_MAX_SPEED/5.0f
+#define ACTOR_FRICTION ACTOR_ACCEL/2.0f
 
 
 #define V3toV2(V3) (Vector2){ V3.x, V3.y }
