@@ -1,6 +1,4 @@
-
-
-How do we get them to not be stuck in walls, while also letting them jump when going downhill?
+Acceleration and velocity
 
 
 PLANS

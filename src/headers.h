@@ -17,7 +17,7 @@
 
 #define DEBUG 1
 #define DRAWWIRES 1
-#define DRAWBBOX 1
+#define DRAWBBOX 0
 #define DRAWEXMESHSIZE ACTOR_SIZE_SMALL
 
 #endif

@@ -28,6 +28,9 @@ extern Vector3 gravity;
 
 #define ACTOR_SPEED 0.06f
 
+#define ACTOR_MAX_SPEED 0.06f
+
+
 #define V3toV2(V3) (Vector2){ V3.x, V3.y }
 #define V2toV3(V2, z) (Vector3){ V2.x, V2.y, z }
 
