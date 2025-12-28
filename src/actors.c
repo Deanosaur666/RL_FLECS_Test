@@ -21,7 +21,7 @@ Vector2 PickPerpendicular(Vector2 myDir, Vector2 wallDir);
 void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
 
     movement = Vector2Scale(movement, ACTOR_SPEED);
-    Vector3 move3D = V2toV3(movement, 0);
+    Vector3 moveXY = V2toV3(movement, 0);
 
     // apply gravity
     actor->velocity = Vector3Add(actor->velocity, gravity);
@@ -33,20 +33,26 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
     groundhit.distance -= ACTOR_HIT_MARGIN;
 
     Vector3 groundNormal = up;
-
-    bool grounded = false;
+    
+    Vector3 moveZ = { 0.0f, 0.0f, actor->velocity.z};
+    if(moveZ.z < 0) {
+        groundhit.distance -= MoveActorRayCollision(actor, position, moveZ, groundhit);
+    }
+    else if(moveZ.z > 0) {
+        MoveActor(actor, position, hitcore, moveZ, NULL);
+    }
 
     // on ground
     if(groundhit.hit && groundhit.distance <= ACTOR_HIT_MARGIN) {
         
-        grounded = true;
-        
-        //printf("GROUND\t\t%f\n", groundhit.distance);
+        float groundAngle = Vector3Angle(up, groundhit.normal) * RAD2DEG;
 
-        groundNormal = groundhit.normal;
-        
-        // tilt vector
-        move3D = GetTiltVector(movement, groundNormal);
+        if(groundAngle <= 60.0f) {
+            groundNormal = groundhit.normal;
+            
+            // tilt vector
+            moveXY = GetTiltVector(movement, groundNormal);
+        }
 
         // snap to terrain
         position->z -= groundhit.distance;
@@ -57,24 +63,20 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
 
         // jump
         if(IsKeyPressed(KEY_SPACE)) {
-            //actor->velocity = Vector3Add(actor->velocity, Vector3Scale(groundNormal, 0.2f));
-            actor->velocity = Vector3Add(actor->velocity, Vector3Scale(up, 0.2f));
+            actor->velocity = Vector3Add(actor->velocity, Vector3Scale(groundNormal, 0.3f));
+            //actor->velocity = Vector3Add(actor->velocity, Vector3Scale(up, 0.2f));
         }
     }
     // not on ground
     else {
-        //printf("AIR\t\t%f\n", groundhit.distance);
+        
     }
+
     // add velocity
-    move3D = Vector3Add(move3D, actor->velocity);
+    moveXY.x += actor->velocity.x;
+    moveXY.y += actor->velocity.y;
 
-    if(false && !grounded && move3D.z < 0) {
-        Vector3 moveVertical = { 0.0f, 0.0f, move3D.z };
-        MoveActorRayCollision(actor, position, moveVertical, groundhit);
-        move3D.z = 0.0f;
-    }
-
-    float moveDist = Vector3Length(move3D);
+    float moveDist = Vector3Length(moveXY);
 
     // move and slide
     if(moveDist > 0.0f) {
@@ -82,7 +84,7 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
         hitcore.z += ACTOR_HIT_MARGIN;
 
         RayCollision c = { 0 };
-        float realMoveDist = MoveActor(actor, position, hitcore, move3D, &c);
+        float realMoveDist = MoveActor(actor, position, hitcore, moveXY, &c);
         
         float reminaingMove = Vector2Length(movement) - realMoveDist;
         // only slide if 2D movement is non-zero
@@ -92,8 +94,8 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement) {
 
             actor->velocity = (Vector3) { 0.0f, 0.0f, actor->velocity.z };
 
-            Vector2 perp = PickPerpendicular(V3toV2(move3D), V3toV2(c.normal));
-            float slideDist = reminaingMove * cos(Vector2Angle(V3toV2(move3D), perp));
+            Vector2 perp = PickPerpendicular(V3toV2(moveXY), V3toV2(c.normal));
+            float slideDist = reminaingMove * cos(Vector2Angle(V3toV2(moveXY), perp));
             
             Vector2 slide = Vector2Scale(perp, slideDist);
             Vector3 slide3D = GetTiltVector(slide, groundNormal);
