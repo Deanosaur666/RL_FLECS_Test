@@ -10,8 +10,8 @@
 
 typedef struct ActorCompass {
     Vector2 direction;          // actor's current direction
-    float desire[COMPASS_RES];  // actor's current direction
-    float avoid[COMPASS_RES];   // actor's current direction
+    float desire[COMPASS_RES];  // actor's desire compass
+    float avoid[COMPASS_RES];   // actor's avoid compass
 } ActorCompass;
 
 void SteerActor(ActorCompass * compass, Actor actor, Position position);
