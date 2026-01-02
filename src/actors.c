@@ -3,12 +3,6 @@
 #include "main.h"
 #include "models.h"
 
-#define VECTOR_IS_NAN(vector) \
-(isnan(vector.x) || isnan(vector.y) || isnan(vector.z))
-
-#define VECTOR_PTR_IS_NAN(vector) \
-(isnan(vector->x) || isnan(vector->y) || isnan(vector->z))
-
 Vector3 ACTOR_SIZE_VECTORS[ACTOR_SIZE_COUNT] = {
     (Vector3){ 0.0f, 0.0f, 0.0f }, // point
     (Vector3){ ACTOR_SMALL_R, ACTOR_SMALL_R, ACTOR_SMALL_Ho2 }
@@ -101,7 +95,7 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
         // jump
         if(IsKeyPressed(KEY_SPACE)) {
             //actor->velocity = Vector3Add(actor->velocity, Vector3Scale(groundNormal, 0.3f));
-            actor->velocity = Vector3Add(actor->velocity, Vector3Scale(up, 0.3f));
+            actor->velocity = Vector3Add(actor->velocity, Vector3Scale(up, 0.5f));
         }
     }
     // not on ground

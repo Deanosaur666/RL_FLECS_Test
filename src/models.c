@@ -184,6 +184,7 @@ Mesh GenMeshPlane2(float width, float length, int resX, int resY) {
     return mesh;
 }
 
+// copied from raylib's GenMeshCube, with inversion added
 Mesh GenMeshInvertedCube(float width, float depth, float height) {
     Mesh mesh = { 0 };
 
@@ -400,9 +401,11 @@ Mesh ExpandMesh(Mesh original, Vector3 expandScale) {
         Vector3 * vert = &vertdata[i];
 
         Vector3 expand = Vector3Normalize(pushVectors[vi]);
+        expand = VECTOR3SIGN(expand); // COMMENT OUT THIS LINE to change version
         expand = Vector3Multiply(expand, expandScale);
 
         *vert = Vector3Add(*vert, expand);
+        
     }
 
     // Upload vertex data to GPU (static mesh)

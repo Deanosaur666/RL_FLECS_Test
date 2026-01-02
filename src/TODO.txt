@@ -1,3 +1,5 @@
+Model expansion is faulty for cubic meshes (probably because of normalization)
+
 Steering
 
 

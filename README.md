@@ -1,3 +1,6 @@
+This project is built off of Raylib-Quickstart.
+Build instructions below.
+
 # Raylib-Quickstart
 A simple cross platform template for setting up a project with the bleeding edge raylib code.
 Works with C or C++.

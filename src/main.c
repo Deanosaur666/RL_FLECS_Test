@@ -148,8 +148,9 @@ int main () {
         ecs_entity_t block_entity = ecs_new(world);
 
         Vector3 position = {
-            GetRandomFloat(-8, 8, 1000),
-            GetRandomFloat(-8, 8, 1000),
+            //GetRandomFloat(-8, 8, 1000),
+            //GetRandomFloat(-8, 8, 1000),
+            0, 0,
             GetRandomFloat(0, 1, 1000)
         };
 
@@ -233,13 +234,17 @@ int main () {
         float dt = GetFrameTime() * 60.0;
         Timer += dt;
         ecs_progress(world, dt);
+
+        Vector3 camOffset = Vector3Subtract(camera.position, camera.target);
+
+        Vector3 camRight = Vector3Normalize(Vector3CrossProduct(up, camOffset));
+        Vector3 camUp = Vector3Normalize(Vector3CrossProduct(camOffset, camRight));
         
         // rotate camera
         if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
             float rotX = mouseDelta.x * 0.1 * DEG2RAD;
             float rotY = mouseDelta.y * 0.1 * DEG2RAD;
             
-            Vector3 camOffset = Vector3Subtract(camera.position, camera.target);
             camOffset = Vector3RotateByAxisAngle(camOffset, up, -rotX);
 
             float angleY = Vector3Angle(camOffset, up);
@@ -252,10 +257,6 @@ int main () {
             camera.position = Vector3Add(camera.target, camOffset);
         }
         else if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-            Vector3 camOffset = Vector3Subtract(camera.position, camera.target);
-
-            Vector3 camRight = Vector3Normalize(Vector3CrossProduct(up, camOffset));
-            Vector3 camUp = Vector3Normalize(Vector3CrossProduct(camOffset, camRight));
 
             float dx = -mouseDelta.x * 0.01;
             float dy = mouseDelta.y * 0.01;
@@ -355,6 +356,10 @@ int main () {
                     // inner loop
                     for (int i = 0; i < it.count; i ++) {
                         DrawBillboardPro(camera, *b[i].tex, b[i].source, p[i], up, b[i].size, b[i].origin, 0.0f, b[i].tint);
+
+#if DRAWWIRES
+                        DrawCube(p[i], 0.1f, 0.1f, 0.1f, RED);
+#endif
                     }
                 }
 
