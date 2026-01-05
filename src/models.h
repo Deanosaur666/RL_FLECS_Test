@@ -72,8 +72,8 @@ typedef struct MapModelCollection {
     Model expanded[ACTOR_SIZE_COUNT];
 } MapModelCollection;
 
-void DrawModelMatTransform(Model model, Vector3 position, Matrix transform, Color tint);
-void DrawModelWiresMatTransform(Model model, Vector3 position, Matrix transform, Color tint);
+void DrawModelMatTransform(Model model, Matrix transform, Color tint);
+void DrawModelWiresMatTransform(Model model, Matrix transform, Color tint);
 
 Mesh GenMeshPlane2(float width, float length, int resX, int resZ);
 Mesh GenMeshInvertedCube(float width, float depth, float height);

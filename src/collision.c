@@ -83,6 +83,12 @@ bool BoundingBoxIntersects(BoundingBox a, BoundingBox b) {
             (a.min.z <= b.max.z && a.max.z >= b.min.z);
 }
 
+bool BoundingBoxContains(BoundingBox b, Vector3 point) {
+    return  (point.x <= b.max.x && point.x >= b.min.x) &&
+            (point.y <= b.max.y && point.y >= b.min.y) &&
+            (point.z <= b.max.z && point.z >= b.min.z);
+}
+
 Collision MeshCollision(MeshCollider a, MeshCollider b) {
     Matrix atransform, btransform;
     if(a.transform == NULL)
@@ -117,4 +123,51 @@ MeshCollider * GetModelMeshColliders(Model model, Matrix * transform) {
         colliders[i] = (MeshCollider){ &model.meshes[i], GetMeshBoundingBox(model.meshes[i]), transform };
     }
     return colliders;
+}
+
+MeshCollider GetModelMeshCollider0(Model model, Matrix * transform) {
+    return (MeshCollider){ &model.meshes[0], GetMeshBoundingBox(model.meshes[0]), transform };
+}
+
+void PointSupport(const void *obj, const ccd_vec3_t *dir, ccd_vec3_t *vec) {
+    Vector3 * pointPTR = (Vector3 *)obj;
+
+    *vec = RL_PTR_TO_CCD_VEC3(pointPTR);
+}
+
+Collision PointVertexMeshCollision(Vector3 p, VertexMesh vm) {
+    ccd_t ccd;
+    CCD_INIT(&ccd);
+
+    ccd.support1 = VertexMeshSupport;
+    ccd.support2 = PointSupport;
+    ccd.max_iterations = 100;
+
+    ccd_real_t depth = 0;
+    ccd_vec3_t dir, pos;
+    int intersect = ccdGJKPenetration(&vm, &p, &ccd, &depth, &dir, &pos);
+
+    return (Collision){ intersect == 0, (float)depth, CCD_TO_RL_VEC3(dir.v), CCD_TO_RL_VEC3(pos.v) };
+}
+
+Collision PointMeshCollision(Vector3 p, MeshCollider m) {
+    Matrix mtransform;
+    if(m.transform == NULL)
+        mtransform = MatrixIdentity();
+    else
+        mtransform = *m.transform;
+        
+    BoundingBox mbox = TransformBoundingBox(m.box, mtransform);
+
+    if(!BoundingBoxContains(mbox, p)) {
+        return (Collision){ false };
+    }
+
+    VertexMesh vm = MeshToVertexMesh(*m.mesh, mtransform);
+
+    Collision c = PointVertexMeshCollision(p, vm);
+
+    free(vm.verts);
+
+    return c;
 }

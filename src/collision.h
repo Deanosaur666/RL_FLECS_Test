@@ -6,6 +6,7 @@
 
 #define CCD_TO_RL_VEC3(vec) (Vector3){ (float)vec[0], (float)vec[1], (float)vec[2] }
 #define RL_TO_CCD_VEC3(vec) ((ccd_vec3_t){ (ccd_real_t)vec.x, (ccd_real_t)vec.y, (ccd_real_t)vec.z })
+#define RL_PTR_TO_CCD_VEC3(vec) ((ccd_vec3_t){ (ccd_real_t)vec->x, (ccd_real_t)vec->y, (ccd_real_t)vec->z })
 
 typedef struct VertexMesh {
     Vector3 * verts;
@@ -33,7 +34,11 @@ void VertexMeshSupport(const void *obj, const ccd_vec3_t *dir, ccd_vec3_t *vec);
 Collision VertexMeshCollision(VertexMesh a, VertexMesh b);
 VertexMesh MeshToVertexMesh(Mesh mesh, Matrix matTransform);
 bool BoundingBoxIntersects(BoundingBox a, BoundingBox b);
+bool BoundingBoxContains(BoundingBox b, Vector3 point);
 Collision MeshCollision(MeshCollider a, MeshCollider b);
 MeshCollider * GetModelMeshColliders(Model model, Matrix * transform);
+MeshCollider GetModelMeshCollider0(Model model, Matrix * transform);
+
+Collision PointMeshCollision(Vector3 p, MeshCollider m);
 
 #endif

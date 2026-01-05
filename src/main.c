@@ -2,6 +2,7 @@
 #include "main.h"
 #include "models.h"
 #include "actors.h"
+#include "collision.h"
 
 float GetRandomFloat(int min, int max, int precision) {
     float f = GetRandomValue(min*precision, max*precision);
@@ -139,6 +140,19 @@ int main () {
 
     MapModelCollection mapc_skybox = MakeMapModelCollection(model_skybox, &model_res_list);
 
+    // icosphere
+    Model model_icosphere = LoadModel("icosphere.glb");
+    LIST_ADD(model_res_list, model_icosphere);
+    Matrix ico_transform = MatrixTranslate(0, 0, 4);
+    MeshCollider ico_collider = GetModelMeshCollider0(model_icosphere, &ico_transform);
+    
+
+    // cylinder
+    Model model_cylinder = LoadModel("cylinder.glb");
+    LIST_ADD(model_res_list, model_cylinder);
+    Matrix cyl_transform = MatrixTranslate(-4, 0, 4);
+    MeshCollider cyl_collider = GetModelMeshCollider0(model_cylinder, &cyl_transform);
+
     // model entities
     // plain
     ecs_entity_t map_entity = ecs_new(world);
@@ -150,9 +164,8 @@ int main () {
         ecs_entity_t block_entity = ecs_new(world);
 
         Vector3 position = {
-            //GetRandomFloat(-8, 8, 1000),
-            //GetRandomFloat(-8, 8, 1000),
-            0, 0,
+            GetRandomFloat(-8, 8, 1000),
+            GetRandomFloat(-8, 8, 1000),
             GetRandomFloat(0, 1, 1000)
         };
 
@@ -302,6 +315,22 @@ int main () {
 
 			BeginMode3D(camera);
 
+                // draw ico and cyl
+                
+                cyl_transform = MatrixMultiply(cyl_transform, MatrixTranslate(keymove.x * 0.1, keymove.y * 0.1, 0));
+                
+                Collision c = MeshCollision(ico_collider, cyl_collider);
+
+                if(c.hit) {
+                    DrawModelWiresMatTransform(model_icosphere, ico_transform, WHITE);
+                    DrawModelWiresMatTransform(model_cylinder, cyl_transform, WHITE);
+                    DrawRay((Ray){ c.point, c.direction }, WHITE);
+                }
+                else {
+                    DrawModelMatTransform(model_icosphere, ico_transform, WHITE);
+                    DrawModelMatTransform(model_cylinder, cyl_transform, WHITE);
+                }
+
                 // draw models
                 ecs_iter_t it = ecs_query_iter(world, q_MapModel);
                 while(ecs_query_next(&it)) {
@@ -312,7 +341,7 @@ int main () {
                     for(int i = 0; i < it.count; i ++) {
                         Model model = models[i];
                         Matrix transform = transforms[i];
-                        DrawModelMatTransform(model, (Vector3){ 0 }, transform, WHITE);
+                        DrawModelMatTransform(model, transform, WHITE);
                     }
                 }
 
@@ -331,7 +360,7 @@ int main () {
 #if DRAWWIRES
                         Color colors[] = {RED, WHITE, GREEN };
                         Model model = models[i];
-                        DrawModelWiresMatTransform(model, (Vector3){ 0 }, transform, colors[ i % 3]);
+                        DrawModelWiresMatTransform(model, transform, colors[ i % 3]);
 #endif
 #if DRAWBBOX
                         // Check ray collision against bounding box first, before trying the full ray-mesh test

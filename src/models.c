@@ -5,14 +5,14 @@
 ecs_query_t * q_MapModel;
 ecs_query_t * q_MapModelEx[ACTOR_SIZE_COUNT];
 
-void DrawModelMatTransform(Model model, Vector3 position, Matrix transform, Color tint) {
+void DrawModelMatTransform(Model model, Matrix transform, Color tint) {
     model.transform = MatrixMultiply(model.transform, transform);
-    DrawModel(model, position, 1.0f, tint);
+    DrawModel(model, (Vector3){ 0 }, 1.0f, tint);
 }
 
-void DrawModelWiresMatTransform(Model model, Vector3 position, Matrix transform, Color tint) {
+void DrawModelWiresMatTransform(Model model, Matrix transform, Color tint) {
     model.transform = MatrixMultiply(model.transform, transform);
-    DrawModelWires(model, position, 1.0f, tint);
+    DrawModelWires(model, (Vector3){ 0 }, 1.0f, tint);
 }
 
 RayCollision RayToModels(Ray ray, ACTOR_SIZE size, float distance) {

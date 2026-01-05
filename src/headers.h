@@ -17,7 +17,7 @@
 #define BLOCK_COUNT 1 // 32
 
 #define DEBUG 1
-#define DRAWWIRES 1
+#define DRAWWIRES 0
 #define DRAWBBOX 0
 #define DRAWEXMESHSIZE ACTOR_SIZE_SMALL
 
