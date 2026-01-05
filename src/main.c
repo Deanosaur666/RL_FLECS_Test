@@ -117,7 +117,8 @@ int main () {
 
     // plain
     printf("LOAD PLAIN\n");
-	Model model_plain = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
+	//Model model_plain = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
+    Model model_plain = LoadModel("Plane test.glb");
 	model_plain.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
 
     MapModelCollection mapc_plain = MakeMapModelCollection(model_plain, &model_res_list);

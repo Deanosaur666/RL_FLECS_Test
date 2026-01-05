@@ -181,12 +181,12 @@ if (downloadRaylib) then
 
         vpaths 
         {
-            ["Header Files/*"] = { "../include/**.h",  "../include/**.hpp", "../src/**.h", "../src/**.hpp"},
-            ["Source Files/*"] = {"../src/**.c", "src/**.cpp"},
+            ["Header Files/*"] = { "../include/**.h",  "../include/**.hpp", "../src/**.h", "../src/**.hpp", "../src/libccd/**.h", "../src/libdccd/**.hpp"},
+            ["Source Files/*"] = {"../src/**.c", "src/**.cpp", "../src/libccd/**.c", "src/libccd/**.cpp"},
             ["Windows Resource Files/*"] = {"../src/**.rc", "src/**.ico"},
         }
         
-        files {"../src/**.c", "../src/**.cpp", "../src/**.h", "../src/**.hpp", "../include/**.h", "../include/**.hpp"}
+        files {"../src/**.c", "../src/**.cpp", "../src/**.h", "../src/**.hpp", "../include/**.h", "../include/**.hpp", "../src/libccd/**.c", "../src/libccd/**.c"}
         
         filter {"system:windows", "action:vs*"}
             files {"../src/*.rc", "../src/*.ico"}
@@ -194,6 +194,7 @@ if (downloadRaylib) then
         filter{}
         
         includedirs { "../src" }
+        includedirs { "../src/libccd" }
         includedirs { "../include" }
 
         links {"raylib"}
