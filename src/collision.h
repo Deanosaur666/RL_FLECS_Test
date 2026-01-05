@@ -35,10 +35,14 @@ Collision VertexMeshCollision(VertexMesh a, VertexMesh b);
 VertexMesh MeshToVertexMesh(Mesh mesh, Matrix matTransform);
 bool BoundingBoxIntersects(BoundingBox a, BoundingBox b);
 bool BoundingBoxContains(BoundingBox b, Vector3 point);
+BoundingBox BoundingBoxAdd(BoundingBox b, Vector3 v);
 Collision MeshCollision(MeshCollider a, MeshCollider b);
 MeshCollider * GetModelMeshColliders(Model model, Matrix * transform);
 MeshCollider GetModelMeshCollider0(Model model, Matrix * transform);
 
 Collision PointMeshCollision(Vector3 p, MeshCollider m);
+Collision BoxMeshCollision(BoundingBox box, MeshCollider m);
+Collision BoxBoxCollision(BoundingBox b1, BoundingBox b2);
+Collision PointBoxCollision(Vector3 p, BoundingBox box);
 
 #endif

@@ -153,6 +153,9 @@ int main () {
     Matrix cyl_transform = MatrixTranslate(-4, 0, 4);
     MeshCollider cyl_collider = GetModelMeshCollider0(model_cylinder, &cyl_transform);
 
+    // box
+    BoundingBox box = { (Vector3){ -0.5, -0.5, 3.5 }, (Vector3){ 0.5, 0.5, 4.5 } };
+
     // model entities
     // plain
     ecs_entity_t map_entity = ecs_new(world);
@@ -310,7 +313,6 @@ int main () {
         //----------------------------------------------------------------------------------
 		BeginDrawing();
 
-			// Setup the back buffer for drawing (clear color and depth buffers)
 			ClearBackground(BLACK);
 
 			BeginMode3D(camera);
@@ -318,8 +320,13 @@ int main () {
                 // draw ico and cyl
                 
                 cyl_transform = MatrixMultiply(cyl_transform, MatrixTranslate(keymove.x * 0.1, keymove.y * 0.1, 0));
+                //DrawBoundingBox(box, WHITE);
+                //BoundingBox cyl_box = TransformBoundingBox(cyl_collider.box, *cyl_collider.transform);
+                //DrawBoundingBox(cyl_box, WHITE);
                 
-                Collision c = MeshCollision(ico_collider, cyl_collider);
+                Collision c = MeshCollision(cyl_collider, ico_collider);
+                //Collision c = BoxMeshCollision(box, cyl_collider);
+                //Collision c = BoxBoxCollision(box, cyl_box);
 
                 if(c.hit) {
                     DrawModelWiresMatTransform(model_icosphere, ico_transform, WHITE);
