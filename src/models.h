@@ -47,21 +47,21 @@ ECS_COMPONENT(world, MapBoxes_ACTOR_SIZE_SMALL)
 #define ECS_MAP_QUERIES() \
 q_MapModel = ecs_query(world, { \
     .terms = { \
-        { ecs_id(MapModel) }, { ecs_id(ModelTransform) } \
+        { ecs_id(MapModel) }, { ecs_id(Matrix) } \
     }, \
     .cache_kind = EcsQueryCacheAll, \
 }); \
 \
 q_MapModelEx[ACTOR_SIZE_POINT] = ecs_query(world, { \
     .terms = { \
-        { ecs_id(MapModel_ACTOR_SIZE_POINT) }, { ecs_id(ModelTransform) }, { ecs_id(MapBoxes_ACTOR_SIZE_POINT) } \
+        { ecs_id(MapModel_ACTOR_SIZE_POINT) }, { ecs_id(Matrix) }, { ecs_id(MapBoxes_ACTOR_SIZE_POINT) } \
     }, \
     .cache_kind = EcsQueryCacheAll, \
 }); \
 \
 q_MapModelEx[ACTOR_SIZE_SMALL] = ecs_query(world, { \
     .terms = { \
-        { ecs_id(MapModel_ACTOR_SIZE_SMALL) }, { ecs_id(ModelTransform) }, { ecs_id(MapBoxes_ACTOR_SIZE_SMALL) } \
+        { ecs_id(MapModel_ACTOR_SIZE_SMALL) }, { ecs_id(Matrix) }, { ecs_id(MapBoxes_ACTOR_SIZE_SMALL) } \
     }, \
     .cache_kind = EcsQueryCacheAll, \
 }); \
@@ -72,16 +72,14 @@ typedef struct MapModelCollection {
     Model expanded[ACTOR_SIZE_COUNT];
 } MapModelCollection;
 
-typedef struct ModelTransform {
-    Position position;
-    Vector3 scale;
-    Vector3 rotationAxis;
-    float rotationAngle;
-} ModelTransform;
+void DrawModelMatTransform(Model model, Vector3 position, Matrix transform, Color tint);
+void DrawModelWiresMatTransform(Model model, Vector3 position, Matrix transform, Color tint);
 
-Matrix MatrixFromTransform(ModelTransform t);
 Mesh GenMeshPlane2(float width, float length, int resX, int resZ);
 Mesh GenMeshInvertedCube(float width, float depth, float height);
+
+
+
 Mesh ExpandMesh(Mesh original, Vector3 expandScale);
 Model ExpandModel(Model original,Vector3 expandScale);
 

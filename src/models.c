@@ -5,14 +5,14 @@
 ecs_query_t * q_MapModel;
 ecs_query_t * q_MapModelEx[ACTOR_SIZE_COUNT];
 
-Matrix MatrixFromTransform(ModelTransform t) {
-    Matrix matScale = MatrixScale(t.scale.x, t.scale.y, t.scale.z);
-    Matrix matRotation = MatrixRotate(t.rotationAxis, t.rotationAngle*DEG2RAD);
-    Matrix matTranslation = MatrixTranslate(t.position.x, t.position.y, t.position.z);
+void DrawModelMatTransform(Model model, Vector3 position, Matrix transform, Color tint) {
+    model.transform = MatrixMultiply(model.transform, transform);
+    DrawModel(model, position, 1.0f, tint);
+}
 
-    Matrix matTransform = MatrixMultiply(MatrixMultiply(matScale, matRotation), matTranslation);
-
-    return matTransform;
+void DrawModelWiresMatTransform(Model model, Vector3 position, Matrix transform, Color tint) {
+    model.transform = MatrixMultiply(model.transform, transform);
+    DrawModelWires(model, position, 1.0f, tint);
 }
 
 RayCollision RayToModels(Ray ray, ACTOR_SIZE size, float distance) {
@@ -21,22 +21,20 @@ RayCollision RayToModels(Ray ray, ACTOR_SIZE size, float distance) {
 	collision.hit = false;
 
     ecs_iter_t it = ecs_query_iter(world, q_MapModelEx[size]);
-    //ecs_iter_t it = ecs_query_iter(world, q_MapModel);
 
     while (ecs_query_next(&it))  {
         MapModel *models = ecs_field(&it, MapModel, 0);
-        ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
+        Matrix *transforms = ecs_field(&it, Matrix, 1);
         MapBoxes *boxes = ecs_field(&it, MapBoxes, 2);
 
         for(int i = 0; i < it.count; i ++) {
             Model model = models[i];
-            ModelTransform transform = transforms[i];
+            Matrix matTransform = transforms[i];
 
             MapBoxes modelBoxes = boxes[i];
 
             BoundingBox box = modelBoxes.modelBox;
 
-            Matrix matTransform = MatrixFromTransform(transform);
             // Check ray collision against bounding box first, before trying the full ray-mesh test
             box = TransformBoundingBox(box, matTransform);
 

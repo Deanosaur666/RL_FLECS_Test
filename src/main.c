@@ -60,7 +60,7 @@ int main () {
 	ECS_COMPONENT(world, Position);
     ECS_COMPONENT(world, Billboard);
     ECS_COMPONENT(world, CamDistance);
-    ECS_COMPONENT(world, ModelTransform);
+    ECS_COMPONENT(world, Matrix);
     ECS_COMPONENT(world, Actor);
 
     ECS_MAP_COMPONENTS();
@@ -112,6 +112,7 @@ int main () {
     LIST_ADD(textures, &tex_sky);
 
     // models
+    Matrix matIdentitiy = MatrixIdentity();
 
     LIST_(Model) model_res_list = NEWLIST(Model);
 
@@ -142,7 +143,7 @@ int main () {
     // plain
     ecs_entity_t map_entity = ecs_new(world);
     ecs_set_maps(map_entity, mapc_plain);
-    ecs_set(world, map_entity, ModelTransform, { .scale = unit_vector });
+    ecs_set_ptr(world, map_entity, Matrix, &matIdentitiy);
 
     // create blocks
     for(int i = 0; i < BLOCK_COUNT; i ++) {
@@ -163,15 +164,20 @@ int main () {
         
         float rotationAngle = GetRandomFloat(-30, 30, 1000);
 
+        Matrix matScale = MatrixScale(1, 1, 1);
+        Matrix matRotation = MatrixRotate(rotationAxis, rotationAngle*DEG2RAD);
+        Matrix matTranslation = MatrixTranslate(position.x, position.y, position.z);
+
+        Matrix matTransform = MatrixMultiply(MatrixMultiply(matScale, matRotation), matTranslation);
+
         ecs_set_maps(block_entity, mapc_block);
-        ecs_set(world, block_entity, ModelTransform, { .position = position, .scale = unit_vector,
-            .rotationAxis = rotationAxis, .rotationAngle = rotationAngle });
+        ecs_set_ptr(world, block_entity, Matrix, &matTransform);
     }
 
     // skybox
     ecs_entity_t skybox_entity = ecs_new(world);
     ecs_set_maps(skybox_entity, mapc_skybox);
-    ecs_set(world, skybox_entity, ModelTransform, { .scale = unit_vector });
+    ecs_set_ptr(world, skybox_entity, Matrix, &matIdentitiy);
 
     // sprite billboard prefabs
     for(int i = SPRITE_RED; i <= SPRITE_PURPLE; i ++) {
@@ -300,15 +306,13 @@ int main () {
                 ecs_iter_t it = ecs_query_iter(world, q_MapModel);
                 while(ecs_query_next(&it)) {
                     MapModel *models = ecs_field(&it, MapModel, 0);
-                    ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
+                    Matrix *transforms = ecs_field(&it, Matrix, 1);
                     
                     // inner loop
                     for(int i = 0; i < it.count; i ++) {
                         Model model = models[i];
-                        ModelTransform transform = transforms[i];
-
-                        DrawModelEx(model, transform.position, transform.rotationAxis,
-                            transform.rotationAngle, transform.scale, WHITE);
+                        Matrix transform = transforms[i];
+                        DrawModelMatTransform(model, (Vector3){ 0 }, transform, WHITE);
                     }
                 }
 
@@ -317,23 +321,21 @@ int main () {
                 it = ecs_query_iter(world, q_MapModelEx[DRAWEXMESHSIZE]);
                 while(ecs_query_next(&it)) {
                     MapModel *models = ecs_field(&it, MapModel, 0);
-                    ModelTransform *transforms = ecs_field(&it, ModelTransform, 1);
+                    Matrix *transforms = ecs_field(&it, Matrix, 1);
                     MapBoxes *boxes = ecs_field(&it, MapBoxes, 2);
                     
                     // inner loop
                     for(int i = 0; i < it.count; i ++) {
-                        ModelTransform transform = transforms[i];
+                        Matrix transform = transforms[i];
                         BoundingBox box = boxes[i].modelBox;
 #if DRAWWIRES
                         Color colors[] = {RED, WHITE, GREEN };
                         Model model = models[i];
-                        DrawModelWiresEx(model, transform.position, transform.rotationAxis,
-                            transform.rotationAngle, transform.scale, colors[ i % 3]);
+                        DrawModelWiresMatTransform(model, (Vector3){ 0 }, transform, colors[ i % 3]);
 #endif
 #if DRAWBBOX
-                        Matrix matTransform = MatrixFromTransform(transform);
                         // Check ray collision against bounding box first, before trying the full ray-mesh test
-                        box = TransformBoundingBox(box, matTransform);
+                        box = TransformBoundingBox(box, transform);
                         DrawBoundingBox(box, WHITE);
 #endif
                     }
