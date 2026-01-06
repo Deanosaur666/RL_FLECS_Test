@@ -118,12 +118,13 @@ int main () {
     LIST_(Model) model_res_list = NEWLIST(Model);
 
     // plain
-    printf("LOAD PLAIN\n");
-	//Model model_plain = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
-    Model model_plain = LoadModel("Plane test.glb");
-	model_plain.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
+    printf("LOAD MAP\n");
+	//Model model_map = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
+    //Model model_map = LoadModel("Plane test.glb");
+    Model model_map = LoadModel("map1.glb");
+	model_map.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
 
-    MapModelCollection mapc_plain = MakeMapModelCollection(model_plain, &model_res_list);
+    MapModelCollection mapc_map1 = MakeMapModelCollection(model_map, &model_res_list);
 
     // block
     printf("LOAD BLOCK\n");
@@ -159,7 +160,7 @@ int main () {
     // model entities
     // plain
     ecs_entity_t map_entity = ecs_new(world);
-    ecs_set_maps(map_entity, mapc_plain);
+    ecs_set_maps(map_entity, mapc_map1);
     ecs_set_ptr(world, map_entity, Matrix, &matIdentitiy);
 
     // create blocks
@@ -318,15 +319,23 @@ int main () {
 			BeginMode3D(camera);
 
                 // draw ico and cyl
+                Vector3 key3D = V2toV3(keymove, 0);
+                if(IsKeyDown(KEY_SPACE))
+                    key3D.z = 1;
+                else if(IsKeyDown(KEY_LEFT_SHIFT))
+                    key3D.z = -1;
+                key3D = Vector3Scale(key3D, 0.1);
+                box = BoundingBoxAdd(box, key3D);
                 
-                cyl_transform = MatrixMultiply(cyl_transform, MatrixTranslate(keymove.x * 0.1, keymove.y * 0.1, 0));
-                //DrawBoundingBox(box, WHITE);
+                //cyl_transform = MatrixMultiply(cyl_transform, MatrixTranslate(keymove.x * 0.1, keymove.y * 0.1, 0));
+                DrawBoundingBox(box, WHITE);
                 //BoundingBox cyl_box = TransformBoundingBox(cyl_collider.box, *cyl_collider.transform);
                 //DrawBoundingBox(cyl_box, WHITE);
                 
-                Collision c = MeshCollision(cyl_collider, ico_collider);
+                //Collision c = MeshCollision(cyl_collider, ico_collider);
                 //Collision c = BoxMeshCollision(box, cyl_collider);
                 //Collision c = BoxBoxCollision(box, cyl_box);
+                Collision c = BoxMeshCollision(box, ico_collider);
 
                 if(c.hit) {
                     DrawModelWiresMatTransform(model_icosphere, ico_transform, WHITE);
