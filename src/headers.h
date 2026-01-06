@@ -20,6 +20,7 @@
 #define DRAWWIRES 0
 #define DRAWBBOX 0
 #define DRAWEXMESHSIZE ACTOR_SIZE_SMALL
+#define DRAW_SHAPES 0
 
 #define SIGN(x) (x == 0 ? 0 : x < 0 ? -1 : 1)
 

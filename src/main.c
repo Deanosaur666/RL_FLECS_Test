@@ -125,6 +125,7 @@ int main () {
 	model_map.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
 
     MapModelCollection mapc_map1 = MakeMapModelCollection(model_map, &model_res_list);
+    MeshCollider * mapColliders = GetModelMeshColliders(model_map, &matIdentitiy);
 
     // block
     printf("LOAD BLOCK\n");
@@ -318,6 +319,12 @@ int main () {
 
 			BeginMode3D(camera);
 
+                // draw map colliders
+                for(int i = 0; i < model_map.meshCount; i ++) {
+                    MeshCollider c = mapColliders[i];
+                    DrawBoundingBox(TransformBoundingBox(c.box, *c.transform), RED);
+                }
+#if DRAW_SHAPES
                 // draw ico and cyl
                 Vector3 key3D = V2toV3(keymove, 0);
                 if(IsKeyDown(KEY_SPACE))
@@ -329,8 +336,8 @@ int main () {
                 
                 //cyl_transform = MatrixMultiply(cyl_transform, MatrixTranslate(keymove.x * 0.1, keymove.y * 0.1, 0));
                 DrawBoundingBox(box, WHITE);
-                //BoundingBox cyl_box = TransformBoundingBox(cyl_collider.box, *cyl_collider.transform);
-                //DrawBoundingBox(cyl_box, WHITE);
+                BoundingBox cyl_box = TransformBoundingBox(cyl_collider.box, *cyl_collider.transform);
+                DrawBoundingBox(cyl_box, WHITE);
                 
                 //Collision c = MeshCollision(cyl_collider, ico_collider);
                 //Collision c = BoxMeshCollision(box, cyl_collider);
@@ -346,6 +353,7 @@ int main () {
                     DrawModelMatTransform(model_icosphere, ico_transform, WHITE);
                     DrawModelMatTransform(model_cylinder, cyl_transform, WHITE);
                 }
+#endif
 
                 // draw models
                 ecs_iter_t it = ecs_query_iter(world, q_MapModel);
