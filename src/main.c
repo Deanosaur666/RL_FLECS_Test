@@ -63,9 +63,10 @@ int main () {
     ECS_COMPONENT(world, CamDistance);
     ECS_COMPONENT(world, Matrix);
     ECS_COMPONENT(world, Actor);
+    ECS_COMPONENT(world, Model);
 
-    ECS_MAP_COMPONENTS();
-    ECS_MAP_QUERIES();
+    ECS_COLLIDER_COMPONENTS();
+    ECS_COLLIDER_QUERIES();
 
     ECS_SYSTEM(world, SetCamDistance, EcsOnUpdate, CamDistance, Position);
 
@@ -113,9 +114,19 @@ int main () {
     LIST_ADD(textures, &tex_sky);
 
     // models
-    Matrix matIdentitiy = MatrixIdentity();
+    ecs_query_t * q_Models = ecs_query(world, {
+        .terms = {
+            { ecs_id(Model) }
+        },
+    });
 
-    LIST_(Model) model_res_list = NEWLIST(Model);
+    ecs_query_t * q_ModelMatrix = ecs_query(world, {
+        .terms = {
+            { ecs_id(Model) }, { ecs_id(Matrix) }
+        },
+    });
+
+    Matrix matIdentitiy = MatrixIdentity();
 
     // plain
     printf("LOAD MAP\n");
@@ -124,78 +135,54 @@ int main () {
     Model model_map = LoadModel("map1.glb");
 	model_map.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
 
-    MapModelCollection mapc_map1 = MakeMapModelCollection(model_map, &model_res_list);
+    ecs_entity_t map_entity = ecs_new(world);
+    ecs_set_ptr(world, map_entity, Model, &model_map);
+    ecs_set_ptr(world, map_entity, Matrix, &matIdentitiy);
+
+    // coliders
     MeshCollider * mapColliders = GetModelMeshColliders(model_map, &matIdentitiy);
 
-    // block
-    printf("LOAD BLOCK\n");
-    Model model_block = LoadModelFromMesh(GenMeshCube(1.0f, 1.0f, 3.0f));
-	model_block.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_brick;
-    //Model model_block = LoadModel("Small pillar.glb");
+    for(int i = 0; i < model_map.meshCount; i ++) {
+        ecs_entity_t collider = ecs_new(world);
+        ecs_set_ptr(world, collider, MeshCollider, &mapColliders[i]);
+    }
 
-    MapModelCollection mapc_block = MakeMapModelCollection(model_block, &model_res_list);
+    free(mapColliders);
 
     // skybox
     printf("LOAD SKYBOX\n");
     Model model_skybox = LoadModelFromMesh(GenMeshInvertedCube(16, 16, 16));
 	model_skybox.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_sky;
 
-    MapModelCollection mapc_skybox = MakeMapModelCollection(model_skybox, &model_res_list);
+    ecs_entity_t skybox_entity = ecs_new(world);
+    ecs_set_ptr(world, skybox_entity, Model, &model_skybox);
+    ecs_set_ptr(world, skybox_entity, Matrix, &matIdentitiy);
 
     // icosphere
     Model model_icosphere = LoadModel("icosphere.glb");
-    LIST_ADD(model_res_list, model_icosphere);
     Matrix ico_transform = MatrixTranslate(0, 0, 4);
     MeshCollider ico_collider = GetModelMeshCollider0(model_icosphere, &ico_transform);
+
+    ecs_entity_t ico_entity = ecs_new(world);
+    ecs_set_ptr(world, ico_entity, Model, &model_icosphere);
+    ecs_set_ptr(world, ico_entity, Matrix, &ico_transform);
+    ecs_set_ptr(world, ico_entity, MeshCollider, &ico_collider);
     
 
     // cylinder
     Model model_cylinder = LoadModel("cylinder.glb");
-    LIST_ADD(model_res_list, model_cylinder);
     Matrix cyl_transform = MatrixTranslate(-4, 0, 4);
     MeshCollider cyl_collider = GetModelMeshCollider0(model_cylinder, &cyl_transform);
 
+    ecs_entity_t cyl_entity = ecs_new(world);
+    ecs_set_ptr(world, cyl_entity, Model, &model_cylinder);
+    ecs_set_ptr(world, cyl_entity, Matrix, &cyl_transform);
+    ecs_set_ptr(world, cyl_entity, MeshCollider, &cyl_collider);
+
     // box
     BoundingBox box = { (Vector3){ -0.5, -0.5, 3.5 }, (Vector3){ 0.5, 0.5, 4.5 } };
-
-    // model entities
-    // plain
-    ecs_entity_t map_entity = ecs_new(world);
-    ecs_set_maps(map_entity, mapc_map1);
-    ecs_set_ptr(world, map_entity, Matrix, &matIdentitiy);
-
-    // create blocks
-    for(int i = 0; i < BLOCK_COUNT; i ++) {
-        ecs_entity_t block_entity = ecs_new(world);
-
-        Vector3 position = {
-            GetRandomFloat(-8, 8, 1000),
-            GetRandomFloat(-8, 8, 1000),
-            GetRandomFloat(0, 1, 1000)
-        };
-
-        Vector3 rotationAxis = {
-            GetRandomFloat(-1, 1, 1000),
-            GetRandomFloat(-1, 1, 1000),
-            GetRandomFloat(-1, 1, 1000)
-        };
-        
-        float rotationAngle = GetRandomFloat(-30, 30, 1000);
-
-        Matrix matScale = MatrixScale(1, 1, 1);
-        Matrix matRotation = MatrixRotate(rotationAxis, rotationAngle*DEG2RAD);
-        Matrix matTranslation = MatrixTranslate(position.x, position.y, position.z);
-
-        Matrix matTransform = MatrixMultiply(MatrixMultiply(matScale, matRotation), matTranslation);
-
-        ecs_set_maps(block_entity, mapc_block);
-        ecs_set_ptr(world, block_entity, Matrix, &matTransform);
-    }
-
-    // skybox
-    ecs_entity_t skybox_entity = ecs_new(world);
-    ecs_set_maps(skybox_entity, mapc_skybox);
-    ecs_set_ptr(world, skybox_entity, Matrix, &matIdentitiy);
+    ecs_entity_t box_entity = ecs_new(world);
+    ecs_set_ptr(world, box_entity, BoxCollider, &box);
 
     // sprite billboard prefabs
     for(int i = SPRITE_RED; i <= SPRITE_PURPLE; i ++) {
@@ -208,7 +195,7 @@ int main () {
             &fulltex,                                       // tex
             (Rectangle){ i * tilew, 0.0f, tilew, tileh},    // source
             (Vector2){ 1.0f, 1.0f },                        // size
-            (Vector2){ 0.5, ACTOR_SIZE_VECTORS[ACTOR_SIZE_SMALL].z},                         // origin
+            (Vector2){ 0.5, 0},                             // origin
             WHITE,                                          // tint
 
         });
@@ -219,18 +206,16 @@ int main () {
         int bb = GetRandomValue(SPRITE_RED, SPRITE_PURPLE);
         ecs_entity_t inst = ecs_new_w_pair(world, EcsIsA, Billboards[bb]);
         ecs_set(world, inst, CamDistance, { 0 });
-        ecs_set(world, inst, Actor, { .size = ACTOR_SIZE_SMALL, .type = bb });
+        ecs_set(world, inst, Actor, { .type = bb });
 
         float x = GetRandomFloat(-7.5, 7.5, 1000);
         float y = GetRandomFloat(-7.5, 7.5, 1000);
-        float z = GetElevation(x, y, 8.0f, ACTOR_SIZE_SMALL) + ACTOR_HIT_MARGIN;
+        float z = GetElevation(x, y, 8.0f) + ACTOR_HIT_MARGIN;
         if(z == FLT_MAX)
             z = 0.0f;
 
         ecs_set(world, inst, Position, { x, y, z });
     }
-	
-	//DisableCursor();
 
     ecs_query_t * q_billboards = ecs_query(world, {
         .terms = {
@@ -309,7 +294,7 @@ int main () {
         keymove = Vector2Rotate(keymove, camAngle);
 
         Ray mouseRay = GetScreenToWorldRay(mousePos, camera);
-        RayCollision mouseHit = RayToModels(mouseRay, ACTOR_SIZE_POINT, FLT_MAX);
+        RayCollision mouseHit = RayToAnyCollider(mouseRay, FLT_MAX);
 		
 		// Draw
         //----------------------------------------------------------------------------------
@@ -320,10 +305,18 @@ int main () {
 			BeginMode3D(camera);
 
 #if DRAW_COLLIDER_BOXES
-                // draw map colliders
-                for(int i = 0; i < model_map.meshCount; i ++) {
-                    MeshCollider c = mapColliders[i];
-                    DrawBoundingBox(TransformBoundingBox(c.box, *c.transform), RED);
+                // draw mesh colliders
+                ecs_iter_t it_collider = ecs_query_iter(world, q_MeshCollider);
+
+                while (ecs_query_next(&it_collider))  {
+                    MeshCollider * colliders = ecs_field(&it_collider, MeshCollider, 0);
+
+                    for(int i = 0; i < it_collider.count; i ++) {
+                        MeshCollider collider = colliders[i];
+                        BoundingBox bbox = TransformBoundingBox(collider.box, *collider.transform);
+                        DrawBoundingBox(bbox, RED);
+
+                    }
                 }
 #endif
                 
@@ -359,9 +352,9 @@ int main () {
 #endif
 
                 // draw models
-                ecs_iter_t it = ecs_query_iter(world, q_MapModel);
+                ecs_iter_t it = ecs_query_iter(world, q_ModelMatrix);
                 while(ecs_query_next(&it)) {
-                    MapModel *models = ecs_field(&it, MapModel, 0);
+                    Model *models = ecs_field(&it, Model, 0);
                     Matrix *transforms = ecs_field(&it, Matrix, 1);
                     
                     // inner loop
@@ -369,34 +362,11 @@ int main () {
                         Model model = models[i];
                         Matrix transform = transforms[i];
                         DrawModelMatTransform(model, transform, WHITE);
-                    }
-                }
-
-                // draw model wires
-#if DRAWWIRES || DRAWBBOX
-                it = ecs_query_iter(world, q_MapModelEx[DRAWEXMESHSIZE]);
-                while(ecs_query_next(&it)) {
-                    MapModel *models = ecs_field(&it, MapModel, 0);
-                    Matrix *transforms = ecs_field(&it, Matrix, 1);
-                    MapBoxes *boxes = ecs_field(&it, MapBoxes, 2);
-                    
-                    // inner loop
-                    for(int i = 0; i < it.count; i ++) {
-                        Matrix transform = transforms[i];
-                        BoundingBox box = boxes[i].modelBox;
 #if DRAWWIRES
-                        Color colors[] = {RED, WHITE, GREEN };
-                        Model model = models[i];
-                        DrawModelWiresMatTransform(model, transform, colors[ i % 3]);
-#endif
-#if DRAWBBOX
-                        // Check ray collision against bounding box first, before trying the full ray-mesh test
-                        box = TransformBoundingBox(box, transform);
-                        DrawBoundingBox(box, WHITE);
+                        DrawModelWiresMatTransform(model, transform, RED);
 #endif
                     }
                 }
-#endif 
 
                 if(mouseHit.hit) {
                     DrawCube(mouseHit.point, 0.3f, 0.3f, 0.3f, WHITE);
@@ -456,9 +426,15 @@ int main () {
     for(int i = 0; i < images.size; i ++) {
         UnloadImage(*LIST_GET(images, i));
     }
-    for(int i = 0; i < model_res_list.size; i ++) {
-        printf("%d\n", i);
-        UnloadModel(LIST_GET(model_res_list, i));
+
+    ecs_iter_t it = ecs_query_iter(world, q_Models);
+    while(ecs_query_next(&it)) {
+        Model *models = ecs_field(&it, Model, 0);
+        // inner loop
+        for(int i = 0; i < it.count; i ++) {
+            Model model = models[i];
+            UnloadModel(models[i]);
+        }
     }
 
     // destroy the window and cleanup the OpenGL context

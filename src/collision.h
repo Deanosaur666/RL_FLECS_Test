@@ -4,6 +4,27 @@
 #include "headers.h"
 #include "main.h"
 
+extern ecs_query_t * q_MeshCollider;
+extern ecs_query_t * q_BoxCollider;
+
+#define ECS_COLLIDER_COMPONENTS() \
+ECS_COMPONENT(world, MeshCollider); \
+ECS_COMPONENT(world, BoxCollider)
+
+#define ECS_COLLIDER_QUERIES() \
+q_MeshCollider = ecs_query(world, { \
+    .terms = { \
+        { ecs_id(MeshCollider) } \
+    }, \
+    .cache_kind = EcsQueryCacheAll, \
+}); \
+q_BoxCollider = ecs_query(world, { \
+    .terms = { \
+        { ecs_id(BoxCollider) } \
+    }, \
+    .cache_kind = EcsQueryCacheAll, \
+})
+
 #define CCD_TO_RL_VEC3(vec) (Vector3){ (float)vec[0], (float)vec[1], (float)vec[2] }
 #define RL_TO_CCD_VEC3(vec) ((ccd_vec3_t){ (ccd_real_t)vec.x, (ccd_real_t)vec.y, (ccd_real_t)vec.z })
 #define RL_PTR_TO_CCD_VEC3(vec) ((ccd_vec3_t){ (ccd_real_t)vec->x, (ccd_real_t)vec->y, (ccd_real_t)vec->z })
@@ -30,16 +51,9 @@ typedef struct MeshCollider {
 typedef BoundingBox BoxCollider;
 typedef Vector3 PointCollider;
 
-float Vector3MixedProduct(Vector3 v0, Vector3 v1, Vector3 v2);
-Vector3 Vector3TripleProduct(Vector3 v0, Vector3 v1, Vector3 v2);
-Vector3 * Vector3ArrayTransform(Vector3 * in, int count, Matrix matTransform);
-Vector3 * MinkowskiDifference3(Vector3 * a_verts, int a_count, Vector3 * b_verts, int b_count);
 void VertexMeshSupport(const void *obj, const ccd_vec3_t *dir, ccd_vec3_t *vec);
 Collision VertexMeshCollision(VertexMesh a, VertexMesh b);
 VertexMesh MeshToVertexMesh(Mesh mesh, Matrix matTransform);
-bool BoundingBoxIntersects(BoundingBox a, BoundingBox b);
-bool BoundingBoxContains(BoundingBox b, Vector3 point);
-BoundingBox BoundingBoxAdd(BoundingBox b, Vector3 v);
 Collision MeshCollision(MeshCollider a, MeshCollider b);
 MeshCollider * GetModelMeshColliders(Model model, Matrix * transform);
 MeshCollider GetModelMeshCollider0(Model model, Matrix * transform);
@@ -48,5 +62,9 @@ Collision PointMeshCollision(Vector3 p, MeshCollider m);
 Collision BoxMeshCollision(BoundingBox box, MeshCollider m);
 Collision BoxBoxCollision(BoundingBox b1, BoundingBox b2);
 Collision PointBoxCollision(Vector3 p, BoundingBox box);
+
+RayCollision RayToMeshColliders(Ray ray, float distance);
+RayCollision RayToBoxColliders(Ray ray, float distance);
+RayCollision RayToAnyCollider(Ray ray, float distance);
 
 #endif

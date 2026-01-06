@@ -1,4 +1,4 @@
-Model expansion is faulty for cubic meshes (probably because of normalization)
+Implement libccd collision detection
 
 Steering
 

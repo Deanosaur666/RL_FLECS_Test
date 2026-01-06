@@ -2,11 +2,7 @@
 #include "headers.h"
 #include "main.h"
 #include "models.h"
-
-Vector3 ACTOR_SIZE_VECTORS[ACTOR_SIZE_COUNT] = {
-    (Vector3){ 0.0f, 0.0f, 0.0f }, // point
-    (Vector3){ ACTOR_SMALL_R, ACTOR_SMALL_R, ACTOR_SMALL_Ho2 }
-};
+#include "collision.h"
 
 Vector3 gravity = { 0.0f, 0.0f, -GRAVITY };
 
@@ -55,7 +51,7 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
     // then check the ground
     Vector3 hitcore = *position;
     hitcore.z += ACTOR_HIT_MARGIN;
-    RayCollision groundhit = RayToModels((Ray) { hitcore, down }, actor->size, FLT_MAX);
+    RayCollision groundhit = RayToAnyCollider((Ray) { hitcore, down }, FLT_MAX);
     groundhit.distance -= ACTOR_HIT_MARGIN;
 
     Vector3 groundNormal = up;
@@ -167,7 +163,7 @@ float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 mov
     float moveDist = Vector3Length(movement);
     Vector3 moveNormal = Vector3Normalize(movement);
     Ray ray = { hitcore, moveNormal };
-    RayCollision c = RayToModels(ray, actor->size, moveDist + ACTOR_HIT_MARGIN*2);
+    RayCollision c = RayToAnyCollider(ray, moveDist + ACTOR_HIT_MARGIN*2);
     if(rc != NULL)
         *rc = c;
     
@@ -194,4 +190,15 @@ Vector2 PickPerpendicular(Vector2 myDir, Vector2 wallDir) {
 Vector3 GetTiltVector(Vector2 dir2D, Vector3 normal) {
     float z = -(normal.x * (dir2D.x) + normal.y * (dir2D.y))/normal.z;
     return Vector3Scale(Vector3Normalize((Vector3){ dir2D.x, dir2D.y, z }), Vector2Length(dir2D));
+}
+
+float GetElevation(float x, float y, float z) {
+    Ray ray = { {x, y, z}, down };
+    RayCollision collision = RayToAnyCollider(ray, FLT_MAX);
+
+    if(collision.hit) {
+        return collision.point.z;
+    }
+
+    return FLT_MAX;
 }

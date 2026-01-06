@@ -4,13 +4,6 @@
 #ifndef _actors
 #define _actors
 
-typedef enum  {
-    ACTOR_SIZE_POINT,
-    ACTOR_SIZE_SMALL,
-
-    ACTOR_SIZE_COUNT
-} ACTOR_SIZE;
-
 typedef enum {
     ACTOR_RED,
     ACTOR_YELLOW,
@@ -21,15 +14,12 @@ typedef enum {
     ACTOR_PURSUER,
 } ACTOR_TYPE;
 
-extern Vector3 ACTOR_SIZE_VECTORS[ACTOR_SIZE_COUNT];
-
 #define ACTOR_HIT_MARGIN 0.1f
 
 #define ACTOR_SMALL_R 0.25f                         // xy radius
-#define ACTOR_SMALL_Ho2 ((14.0f / 16.0f) / 2.0f)    // z radius, height over 2
+#define ACTOR_SMALL_H (14.0f / 16.0f)      // height, in z
 
 typedef struct Actor {
-    ACTOR_SIZE size;
     ACTOR_TYPE type;
     Vector3 velocity;
 } Actor;
@@ -56,6 +46,8 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movement);
 float MoveActorRayCollision(Actor * actor, Position * position, Vector3 movement, RayCollision c);
 float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 movement, RayCollision * c);
 Vector3 GetTiltVector(Vector2 vec, Vector3 normal);
+
+float GetElevation(float x, float y, float z);
 
 typedef enum {
     SPRITE_RED,

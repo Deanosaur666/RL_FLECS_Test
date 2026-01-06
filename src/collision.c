@@ -3,37 +3,8 @@
 #include "main.h"
 #include "models.h"
 
-float Vector3MixedProduct(Vector3 v0, Vector3 v1, Vector3 v2) {
-    return Vector3DotProduct(Vector3CrossProduct(v0, v1), v2);
-}
-
-Vector3 Vector3TripleProduct(Vector3 v0, Vector3 v1, Vector3 v2) {
-    return Vector3CrossProduct(Vector3CrossProduct(v0, v1), v2);
-}
-
-Vector3 * Vector3ArrayTransform(Vector3 * in, int count, Matrix matTransform) {
-    Vector3 * out = (Vector3 *)malloc(sizeof(Vector3) * count);
-    for(int i = 0; i < count; i ++) {
-        out[i] = Vector3Transform(in[i], matTransform);
-    }
-
-    return out;
-}
-
-Vector3 * MinkowskiDifference3(Vector3 * a_verts, int a_count, Vector3 * b_verts, int b_count) {
-    int diff_count = a_count * b_count;
-    // receiver must free this
-    Vector3 * diff_verts = (Vector3 *)malloc(sizeof(Vector3) * diff_count);
-    int d = 0;
-    for(int a = 0; a < a_count; a ++) {
-        for(int b = 0; b < b_count; b ++) {
-            diff_verts[d] = Vector3Subtract(b_verts[b], a_verts[a]);
-            d ++;
-        }
-    }
-
-    return diff_verts;
-}
+ecs_query_t * q_MeshCollider;
+ecs_query_t * q_BoxCollider;
 
 void VertexMeshSupport(const void *obj, const ccd_vec3_t *dir, ccd_vec3_t *vec) {
     VertexMesh * meshPtr = (VertexMesh *)obj;
@@ -75,24 +46,6 @@ VertexMesh MeshToVertexMesh(Mesh mesh, Matrix matTransform) {
     // receiver must free these
     vMesh.verts = Vector3ArrayTransform((Vector3 *)mesh.vertices, mesh.vertexCount, matTransform);
     return vMesh;
-}
-
-bool BoundingBoxIntersects(BoundingBox a, BoundingBox b) {
-    return  (a.min.x <= b.max.x && a.max.x >= b.min.x) && 
-            (a.min.y <= b.max.y && a.max.y >= b.min.y) && 
-            (a.min.z <= b.max.z && a.max.z >= b.min.z);
-}
-
-bool BoundingBoxContains(BoundingBox b, Vector3 point) {
-    return  (point.x <= b.max.x && point.x >= b.min.x) &&
-            (point.y <= b.max.y && point.y >= b.min.y) &&
-            (point.z <= b.max.z && point.z >= b.min.z);
-}
-
-BoundingBox BoundingBoxAdd(BoundingBox b, Vector3 v) {
-    b.min = Vector3Add(b.min, v);
-    b.max = Vector3Add(b.max, v);
-    return b;
 }
 
 Collision MeshCollision(MeshCollider a, MeshCollider b) {
@@ -267,4 +220,70 @@ Collision PointBoxCollision(Vector3 p, BoundingBox box) {
     int intersect = ccdGJKPenetration(&box, &p, &ccd, &depth, &dir, &pos);
 
     return (Collision){ intersect == 0, (float)depth, CCD_TO_RL_VEC3(dir.v), CCD_TO_RL_VEC3(pos.v) };
+}
+
+RayCollision RayToMeshColliders(Ray ray, float distance) {
+	RayCollision collision = { 0 };
+	collision.distance = FLT_MAX;
+	collision.hit = false;
+
+    ecs_iter_t it = ecs_query_iter(world, q_MeshCollider);
+
+    while (ecs_query_next(&it))  {
+        MeshCollider * colliders = ecs_field(&it, MeshCollider, 0);
+
+        for(int i = 0; i < it.count; i ++) {
+            MeshCollider collider = colliders[i];
+            BoundingBox box = TransformBoundingBox(collider.box, *collider.transform);
+
+            RayCollision boxHitInfo = GetRayCollisionBox(ray, box);
+            if ((boxHitInfo.hit)) {
+                // Check ray collision against model meshes
+                RayCollision meshHitInfo = { 0 };
+
+                meshHitInfo = GetRayCollisionMesh(ray, *collider.mesh, *collider.transform);
+                float hitAngle = Vector3Angle(ray.direction, meshHitInfo.normal)*RAD2DEG;
+
+                if (meshHitInfo.hit && hitAngle >= 90.0f && (meshHitInfo.distance < collision.distance) && (meshHitInfo.distance < distance))
+                {
+                    collision = meshHitInfo;
+                }
+            }
+        }
+    }
+
+	return collision;
+}
+
+RayCollision RayToBoxColliders(Ray ray, float distance) {
+	RayCollision collision = { 0 };
+	collision.distance = FLT_MAX;
+	collision.hit = false;
+
+    ecs_iter_t it = ecs_query_iter(world, q_BoxCollider);
+
+    while (ecs_query_next(&it))  {
+        BoxCollider * colliders = ecs_field(&it, BoxCollider, 0);
+
+        for(int i = 0; i < it.count; i ++) {
+            BoxCollider box = colliders[i];
+
+            RayCollision boxHitInfo = GetRayCollisionBox(ray, box);
+            if (boxHitInfo.hit && boxHitInfo.distance < collision.distance && boxHitInfo.distance < distance) {
+                collision = boxHitInfo;
+            }
+        }
+    }
+
+	return collision;
+}
+
+RayCollision RayToAnyCollider(Ray ray, float distance) {
+    RayCollision meshHit = RayToMeshColliders(ray, distance);
+    RayCollision boxHit = RayToBoxColliders(ray, distance);
+
+    if(meshHit.hit && (!boxHit.hit || meshHit.distance < boxHit.distance))
+        return meshHit;
+    else
+        return boxHit;
 }
