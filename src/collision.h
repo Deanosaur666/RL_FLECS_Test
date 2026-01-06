@@ -26,6 +26,10 @@ typedef struct MeshCollider {
     Matrix * transform;
 } MeshCollider;
 
+// for component system
+typedef BoundingBox BoxCollider;
+typedef Vector3 PointCollider;
+
 float Vector3MixedProduct(Vector3 v0, Vector3 v1, Vector3 v2);
 Vector3 Vector3TripleProduct(Vector3 v0, Vector3 v1, Vector3 v2);
 Vector3 * Vector3ArrayTransform(Vector3 * in, int count, Matrix matTransform);

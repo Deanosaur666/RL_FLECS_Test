@@ -319,11 +319,14 @@ int main () {
 
 			BeginMode3D(camera);
 
+#if DRAW_COLLIDER_BOXES
                 // draw map colliders
                 for(int i = 0; i < model_map.meshCount; i ++) {
                     MeshCollider c = mapColliders[i];
                     DrawBoundingBox(TransformBoundingBox(c.box, *c.transform), RED);
                 }
+#endif
+                
 #if DRAW_SHAPES
                 // draw ico and cyl
                 Vector3 key3D = V2toV3(keymove, 0);
