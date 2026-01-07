@@ -6,6 +6,8 @@
 
 extern ecs_query_t * q_MeshCollider;
 extern ecs_query_t * q_BoxCollider;
+extern ecs_query_t * q_BoxColliderNotActor;
+extern ecs_query_t * q_ColliderNotActor;
 
 #define ECS_COLLIDER_COMPONENTS() \
 ECS_COMPONENT(world, MeshCollider); \
@@ -23,7 +25,14 @@ q_BoxCollider = ecs_query(world, { \
         { ecs_id(BoxCollider) } \
     }, \
     .cache_kind = EcsQueryCacheAll, \
+}); \
+q_BoxColliderNotActor = ecs_query(world, { \
+    .terms = { \
+        { ecs_id(BoxCollider) }, { ecs_id(Actor), .oper = EcsNot } \
+    }, \
+    .cache_kind = EcsQueryCacheAll, \
 })
+
 
 #define CCD_TO_RL_VEC3(vec) (Vector3){ (float)vec[0], (float)vec[1], (float)vec[2] }
 #define RL_TO_CCD_VEC3(vec) ((ccd_vec3_t){ (ccd_real_t)vec.x, (ccd_real_t)vec.y, (ccd_real_t)vec.z })

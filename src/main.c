@@ -201,12 +201,14 @@ int main () {
         });
     }
 
+    BoxCollider smallActorBox = { { -ACTOR_SMALL_R, -ACTOR_SMALL_R, 0 }, { ACTOR_SMALL_R, ACTOR_SMALL_R, ACTOR_SMALL_H } };
+
     // create billboard guys
     for(int i = 0; i < ACTOR_COUNT; i ++) {
         int bb = GetRandomValue(SPRITE_RED, SPRITE_PURPLE);
         ecs_entity_t inst = ecs_new_w_pair(world, EcsIsA, Billboards[bb]);
         ecs_set(world, inst, CamDistance, { 0 });
-        ecs_set(world, inst, Actor, { .type = bb });
+        ecs_set(world, inst, Actor, { .type = bb, .box = &smallActorBox });
 
         float x = GetRandomFloat(-7.5, 7.5, 1000);
         float y = GetRandomFloat(-7.5, 7.5, 1000);
@@ -387,8 +389,22 @@ int main () {
                         DrawBillboardPro(camera, *b[i].tex, b[i].source, p[i], up, b[i].size, b[i].origin, 0.0f, b[i].tint);
 
 #if DRAWWIRES
+                        // Billboard position
                         DrawCube(p[i], 0.1f, 0.1f, 0.1f, RED);
 #endif
+                    }
+                }
+
+                // actor movement
+                it = ecs_query_iter(world, q_actors);
+
+                while(ecs_query_next(&it)) {
+                    Actor *a = ecs_field(&it, Actor, 0);
+                    Position *p = ecs_field(&it, Position, 1);
+
+                    // inner loop
+                    for (int i = 0; i < it.count; i ++) {
+                        ActorPhysics( &a[i], &p[i], keymove );
                     }
                 }
 
@@ -399,17 +415,8 @@ int main () {
 		EndDrawing();
         //----------------------------------------------------------------------------------
 
-        // actor movement
-        it = ecs_query_iter(world, q_actors);
-
-        while(ecs_query_next(&it)) {
-            Actor *a = ecs_field(&it, Actor, 0);
-            Position *p = ecs_field(&it, Position, 1);
-
-            // inner loop
-            for (int i = 0; i < it.count; i ++) {
-                ActorPhysics( &a[i], &p[i], keymove );
-            }
+        if(IsKeyPressed(KEY_F12)) {
+            TakeScreenshot("Screenshots/1.png");
         }
 
         lastMousePos = mousePos;

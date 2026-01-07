@@ -5,6 +5,7 @@
 
 ecs_query_t * q_MeshCollider;
 ecs_query_t * q_BoxCollider;
+ecs_query_t * q_BoxColliderNotActor;
 
 void VertexMeshSupport(const void *obj, const ccd_vec3_t *dir, ccd_vec3_t *vec) {
     VertexMesh * meshPtr = (VertexMesh *)obj;
@@ -197,7 +198,7 @@ Collision BoxBoxCollision(BoundingBox b1, BoundingBox b2) {
 
     ccd_real_t depth = 0;
     ccd_vec3_t dir, pos;
-    int intersect = ccdGJKPenetration(&b1, &b2, &ccd, &depth, &dir, &pos);
+    int intersect = ccdGJKPenetration(&b2, &b1, &ccd, &depth, &dir, &pos);
 
     return (Collision){ intersect == 0, (float)depth, CCD_TO_RL_VEC3(dir.v), CCD_TO_RL_VEC3(pos.v) };
 }

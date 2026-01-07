@@ -18,9 +18,9 @@
 #define ACTOR_COUNT 1 // 64
 
 #define DEBUG 1
-#define DRAWWIRES 1 // unused?
+#define DRAWWIRES 0 
 #define DRAW_SHAPES 1
-#define DRAW_COLLIDER_BOXES 1
+#define DRAW_COLLIDER_BOXES 0
 
 #define SIGN(x) (x == 0 ? 0 : x < 0 ? -1 : 1)
 

@@ -47,45 +47,18 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
 
     // apply gravity
     actor->velocity = Vector3Add(actor->velocity, gravity);
-    
-    // then check the ground
-    Vector3 hitcore = *position;
-    hitcore.z += ACTOR_HIT_MARGIN;
-    RayCollision groundhit = RayToAnyCollider((Ray) { hitcore, down }, FLT_MAX);
-    groundhit.distance -= ACTOR_HIT_MARGIN;
 
-    Vector3 groundNormal = up;
-    
-    Vector3 moveZ = { 0.0f, 0.0f, actor->velocity.z};
-    if(moveZ.z < 0) {
-        groundhit.distance -= MoveActorRayCollision(actor, position, moveZ, groundhit);
-    }
-    else if(moveZ.z > 0) {
-        groundhit.distance += MoveActor(actor, position, hitcore, moveZ, NULL);
-    }
-
-    // on ground
-    if(groundhit.hit && groundhit.distance <= ACTOR_HIT_MARGIN) {
-
+    // grounded
+    if(actor->grounded > 0) {
+        Vector3 accel = GetTiltVector(V3toV2(movedir), actor->groundNormal);
         ActorFriction(actor);
-        ActorAccelerate(actor, V2toV3(movedir, 0), true);
-        moveXY = (Vector3){ actor->velocity.x, actor->velocity.y, 0 };
-        
-        float groundAngle = Vector3Angle(up, groundhit.normal) * RAD2DEG;
+        ActorAccelerate(actor, accel, true);
 
-        if(groundAngle <= 60.0f) {
-            groundNormal = groundhit.normal;
-            
-            // tilt vector
-            moveXY = GetTiltVector(V3toV2(moveXY), groundNormal);
-        }
-
-        // snap to terrain
-        position->z -= groundhit.distance;
-        groundhit.distance = 0.0f;
-        if(actor->velocity.z < 0) {
-            //actor->velocity = (Vector3){ 0.0f, 0.0f, 0.0f };
-            actor->velocity.z = 0;
+        // remove component against ground
+        if(actor->grounded == ACTOR_GROUND_TIME) {
+            float backoff = Vector3DotProduct(actor->velocity, actor->groundNormal) * (actor->grounded / ACTOR_GROUND_TIME);
+            Vector3 eject = Vector3Scale(actor->groundNormal, backoff);
+            actor->velocity = Vector3Subtract(actor->velocity, eject);
         }
 
         // jump
@@ -94,44 +67,21 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
             actor->velocity = Vector3Add(actor->velocity, Vector3Scale(up, 0.5f));
         }
     }
-    // not on ground
     else {
         ActorAccelerate(actor, V2toV3(movedir, 0), false);
-        moveXY = (Vector3){ actor->velocity.x, actor->velocity.y, 0 };
     }
 
-    // add velocity
-    //moveXY.x += actor->velocity.x;
-    //moveXY.y += actor->velocity.y;
+    actor->grounded --;
 
-    float moveDist = Vector3Length(moveXY);
-
-    // move and slide
-    if(moveDist > 0.0f) {
-        hitcore = *position;
-        hitcore.z += ACTOR_HIT_MARGIN;
-
-        RayCollision c = { 0 };
-        float realMoveDist = MoveActor(actor, position, hitcore, moveXY, &c);
-        
-        float reminaingMove = Vector3Length(moveXY) - realMoveDist;
-        // only slide if 2D movement is non-zero
-        if(c.hit && reminaingMove > 0) {
-            hitcore = *position;
-            hitcore.z += ACTOR_HIT_MARGIN;
-
-            actor->velocity = (Vector3) { 0.0f, 0.0f, actor->velocity.z };
-
-            Vector2 perp = PickPerpendicular(V3toV2(moveXY), V3toV2(c.normal));
-            float slideDist = reminaingMove * cos(Vector2Angle(V3toV2(moveXY), perp));
-            
-            Vector2 slide = Vector2Scale(perp, slideDist);
-            Vector3 slide3D = GetTiltVector(slide, groundNormal);
-
-            MoveActor(actor, position, hitcore, slide3D, NULL);
-        }
-        
+    Collision groundCollision = { false };
+    MoveActorBox(actor, position, actor->velocity, &groundCollision);
+    if(groundCollision.hit) {
+        actor->groundNormal = groundCollision.direction;
+        if(groundCollision.depth > GRAVITY * 2)
+            position->z += groundCollision.depth;
     }
+    
+
 }
 
 float MoveActorRayCollision(Actor * actor, Position * position, Vector3 movement, RayCollision c) {
@@ -201,4 +151,78 @@ float GetElevation(float x, float y, float z) {
     }
 
     return FLT_MAX;
+}
+
+void ActorCollision(Actor * actor, Collision c, Vector3 * move, Collision * groundCollision) {
+    Vector3 moveNormal = Vector3Normalize(*move);
+    float moveDist = Vector3Length(*move);
+
+    float eject = Vector3DotProduct(moveNormal, Vector3Negate(c.direction)) * c.depth;
+    moveDist = moveDist - eject;
+    *move = Vector3Scale(moveNormal, moveDist);
+
+    float groundAngle = Vector3Angle(up, c.direction);
+    if(groundAngle <= ACTOR_MAX_SLOPE) {
+        actor->grounded = ACTOR_GROUND_TIME;
+        groundCollision->hit = true;
+        if(Vector3DotProduct(c.direction, up) < Vector3DotProduct(groundCollision->direction, up)) {
+            groundCollision->direction = c.direction;
+        }
+        if(c.depth > groundCollision->depth) {
+            groundCollision->depth = c.depth;
+        }
+    }
+
+    DrawRay((Ray){ c.point, c.direction }, RED);
+}
+
+float MoveActorBox(Actor * actor, Position * position, Vector3 move, Collision * groundCollision) {
+    
+    groundCollision->hit = false;
+    groundCollision->depth = 0.0f;
+    groundCollision->direction = up;
+
+    float moveDist = Vector3Length(move);
+    Vector3 moveNormal = Vector3Normalize(move);
+
+    // what's our box after moving the full distance?
+    Position target = Vector3Add(*position, move);
+    BoundingBox targetBox = BoundingBoxAdd(*actor->box, target);
+
+    DrawBoundingBox(targetBox, RED);
+
+    // boxes (non actor)
+    ecs_iter_t it = ecs_query_iter(world, q_BoxColliderNotActor);
+    while (ecs_query_next(&it))  {
+        BoxCollider * colliders = ecs_field(&it, BoxCollider, 0);
+
+        for(int i = 0; i < it.count; i ++) {
+            BoxCollider box = colliders[i];
+
+            Collision c = BoxBoxCollision(targetBox, box);
+            if(c.hit) {
+                ActorCollision(actor, c, &move, groundCollision);
+            }
+        }
+    }
+
+    // meshes
+    it = ecs_query_iter(world, q_MeshCollider);
+    while (ecs_query_next(&it))  {
+        MeshCollider * colliders = ecs_field(&it, MeshCollider, 0);
+
+        for(int i = 0; i < it.count; i ++) {
+            MeshCollider collider = colliders[i];
+
+            Collision c = BoxMeshCollision(targetBox, collider);
+            if(c.hit) {
+                ActorCollision(actor, c, &move, groundCollision);
+
+            }
+        }
+    }
+
+    *position = Vector3Add(*position, move);
+
+    return moveDist;
 }

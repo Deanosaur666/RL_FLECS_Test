@@ -1,8 +1,9 @@
-#include "headers.h"
-#include "main.h"
-
 #ifndef _actors
 #define _actors
+
+#include "headers.h"
+#include "main.h"
+#include "collision.h"
 
 typedef enum {
     ACTOR_RED,
@@ -17,11 +18,17 @@ typedef enum {
 #define ACTOR_HIT_MARGIN 0.1f
 
 #define ACTOR_SMALL_R 0.25f                         // xy radius
-#define ACTOR_SMALL_H (14.0f / 16.0f)      // height, in z
+#define ACTOR_SMALL_H (14.0f / 16.0f)               // height, in z
+
+#define ACTOR_MAX_SLOPE 50.0f * DEG2RAD
+#define ACTOR_GROUND_TIME 5     // how many frames still considered grounded after leaving ground
 
 typedef struct Actor {
     ACTOR_TYPE type;
     Vector3 velocity;
+    BoxCollider * box;
+    int grounded;
+    Vector3 groundNormal;
 } Actor;
 
 #define GRAVITY 9.8f / 360.0f // -9.8f / 60.0f
@@ -48,6 +55,8 @@ float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 mov
 Vector3 GetTiltVector(Vector2 vec, Vector3 normal);
 
 float GetElevation(float x, float y, float z);
+
+float MoveActorBox(Actor * actor, Position * position, Vector3 move, Collision * groundCollision);
 
 typedef enum {
     SPRITE_RED,
