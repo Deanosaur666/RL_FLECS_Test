@@ -147,14 +147,12 @@ float GetElevation(float x, float y, float z) {
 
 void ActorCollision(Actor * actor, Position * position, Collision c, Vector3 * move, Collision * groundCollision) {
     if(move != NULL) {
-        assert(!VECTOR3_PTR_IS_NAN(move));
         Vector3 moveNormal = Vector3Normalize(*move);
         float moveDist = Vector3Length(*move);
         
         float eject = Vector3DotProduct(moveNormal, Vector3Negate(c.direction)) * c.depth;
         moveDist = moveDist - eject;
         *move = Vector3Scale(moveNormal, moveDist);
-        assert(!VECTOR3_PTR_IS_NAN(move));
     }
 
     float groundAngle = Vector3Angle(up, c.direction);
