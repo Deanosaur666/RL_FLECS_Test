@@ -1,6 +1,8 @@
+This game is built with [raylib](https://www.raylib.com/) (for graphics), [Flecs](https://www.flecs.dev/flecs/) (for entity component system), and [libccd](https://github.com/danfis/libccd/) (for 3D collision detection).
+
 ![Screenshot](/screenshot000.png)
 
-This project is built off of Raylib-Quickstart.
+This project is built off of [Raylib-Quickstart](https://github.com/raylib-extras/raylib-quickstart).
 Build instructions below.
 
 # Raylib-Quickstart
@@ -99,7 +101,7 @@ If you need to build for a different OpenGL version than the default (OpenGL 3.3
 ## For OpenGLES 3.0
 `--graphics=opengles3`
 
-# License
+# Raylib Quickstart License
 Copyright (c) 2020-2025 Jeffery Myers
 
 This software is provided "as-is", without any express or implied warranty. In no event 
