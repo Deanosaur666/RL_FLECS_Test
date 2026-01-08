@@ -70,3 +70,9 @@ BoundingBox TransformBoundingBox(BoundingBox box, Matrix matTransform) {
 
     return box;
 }
+
+Vector3 ClipVector(Vector3 vec, Vector3 normal) {
+    float backoff = Vector3DotProduct(vec, normal);
+    Vector3 eject = Vector3Scale(normal, backoff);
+    return Vector3Subtract(vec, eject);
+}

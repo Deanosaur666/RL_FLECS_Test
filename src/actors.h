@@ -15,7 +15,7 @@ typedef enum {
     ACTOR_PURSUER,
 } ACTOR_TYPE;
 
-#define ACTOR_HIT_MARGIN 0.1f
+#define ACTOR_GROUND_TEST_DIST 0.1f
 
 #define ACTOR_SMALL_R 0.25f                         // xy radius
 #define ACTOR_SMALL_H (14.0f / 16.0f)               // height, in z
@@ -34,8 +34,6 @@ typedef struct Actor {
 #define GRAVITY 9.8f / 360.0f // -9.8f / 60.0f
 extern Vector3 gravity;
 
-#define ACTOR_SPEED 0.06f
-
 #define ACTOR_MAX_SPEED 0.06f
 #define ACTOR_AIR_MAX_SPEED ACTOR_MAX_SPEED/10.0f
 #define ACTOR_MIN_SPEED 0.001f // stop at this point
@@ -50,13 +48,12 @@ extern Vector3 gravity;
 #define PERPR(V2) (Vector2){ V2.y, -V2.x }
 
 void ActorPhysics(Actor * actor, Position * position, Vector2 movement);
-float MoveActorRayCollision(Actor * actor, Position * position, Vector3 movement, RayCollision c);
-float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 movement, RayCollision * c);
 Vector3 GetTiltVector(Vector2 vec, Vector3 normal);
 
 float GetElevation(float x, float y, float z);
 
 float MoveActorBox(Actor * actor, Position * position, Vector3 move, Collision * groundCollision);
+void ActorTestGround(Actor * actor, Position * position, Collision * groundCollision);
 
 typedef enum {
     SPRITE_RED,

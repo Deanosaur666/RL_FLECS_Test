@@ -15,20 +15,26 @@
 #undef FLT_MAX
 #define FLT_MAX     340282346638528859811704183484516925440.0f     // Maximum value of a float, from bit pattern 01111111011111111111111111111111
 
-#define ACTOR_COUNT 1 // 64
+#define ACTOR_COUNT 2 // 64
 
 #define DEBUG 1
 #define DRAWWIRES 0 
-#define DRAW_SHAPES 1
+#define DRAW_SHAPES 0
 #define DRAW_COLLIDER_BOXES 0
 
 #define SIGN(x) (x == 0 ? 0 : x < 0 ? -1 : 1)
 
-#define VECTOR_IS_NAN(vector) \
+#define VECTOR3_IS_NAN(vector) \
 (isnan(vector.x) || isnan(vector.y) || isnan(vector.z))
 
-#define VECTOR_PTR_IS_NAN(vector) \
+#define VECTOR3_PTR_IS_NAN(vector) \
 (isnan(vector->x) || isnan(vector->y) || isnan(vector->z))
+
+#define VECTOR2_IS_NAN(vector) \
+(isnan(vector.x) || isnan(vector.y))
+
+#define VECTOR2_PTR_IS_NAN(vector) \
+(isnan(vector->x) || isnan(vector->y))
 
 #define VECTOR3SIGN(vector) \
 (Vector3){ SIGN(vector.x), SIGN(vector.y), SIGN(vector.z)  }

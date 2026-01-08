@@ -12,4 +12,6 @@ bool BoundingBoxContains(BoundingBox b, Vector3 point);
 BoundingBox BoundingBoxAdd(BoundingBox b, Vector3 v);
 BoundingBox TransformBoundingBox(BoundingBox box, Matrix matTransform);
 
+Vector3 ClipVector(Vector3 vec, Vector3 normal);
+
 #endif

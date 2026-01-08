@@ -10,10 +10,11 @@ Vector2 PickPerpendicular(Vector2 myDir, Vector2 wallDir);
 
 // Only apply friction when on ground
 void ActorFriction(Actor * actor) {
-    float speed = Vector2Length(V3toV2(actor->velocity));
+    float speed = Vector3Length(actor->velocity);
     if(speed < ACTOR_MIN_SPEED) {
         actor->velocity.x = 0;
         actor->velocity.y = 0;
+        actor->velocity.z = 0;
         return;
     }
 
@@ -23,9 +24,11 @@ void ActorFriction(Actor * actor) {
     
     actor->velocity.x *= newSpeed/speed;
     actor->velocity.y *= newSpeed/speed;
+    actor->velocity.z *= newSpeed/speed;
 }
 
 void ActorAccelerate(Actor * actor, Vector3 movedir, bool grounded) {
+    assert(!VECTOR3_IS_NAN(actor->velocity));
     Vector3 velocityXY = V2toV3(actor->velocity, 0);
     float currentSpeed = Vector3DotProduct(velocityXY, movedir);
     float maxSpeed = ACTOR_MAX_SPEED;
@@ -39,14 +42,31 @@ void ActorAccelerate(Actor * actor, Vector3 movedir, bool grounded) {
     float accel = ACTOR_ACCEL > addspeed ? addspeed : ACTOR_ACCEL;
 
     actor->velocity = Vector3Add(actor->velocity, Vector3Scale(movedir, accel));
+    assert(!VECTOR3_IS_NAN(actor->velocity));
 }
 
 void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
 
-    Vector3 moveXY;
+    // CHECK GROUNDED
+    // TEST A POINT BELOW ACTOR
+    Collision groundCollision = { 0 };
+    groundCollision.hit = false;
+    groundCollision.depth = 0.0f;
+    groundCollision.direction = up;
 
-    // apply gravity
-    actor->velocity = Vector3Add(actor->velocity, gravity);
+    assert(!VECTOR3_PTR_IS_NAN(position));
+    assert(!VECTOR3_IS_NAN(actor->velocity));
+
+    ActorTestGround(actor, position, &groundCollision);
+    if(groundCollision.hit) {
+        actor->grounded = ACTOR_GROUND_TIME;
+        //if(fabsf(groundCollision.depth) < ACTOR_GROUND_TEST_DIST)
+        //    position->z += groundCollision.depth;
+    }
+    else {
+        // apply gravity
+        actor->velocity = Vector3Add(actor->velocity, gravity);
+    }
 
     // grounded
     if(actor->grounded > 0) {
@@ -54,17 +74,22 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
         ActorFriction(actor);
         ActorAccelerate(actor, accel, true);
 
+        // if on ground, cap downward velocity to prevent too much sliding
+        if(actor->velocity.z < -ACTOR_MAX_SPEED) {
+            actor->velocity.z = -ACTOR_MAX_SPEED;
+        }
+
         // remove component against ground
         if(actor->grounded == ACTOR_GROUND_TIME) {
-            float backoff = Vector3DotProduct(actor->velocity, actor->groundNormal) * (actor->grounded / ACTOR_GROUND_TIME);
-            Vector3 eject = Vector3Scale(actor->groundNormal, backoff);
-            actor->velocity = Vector3Subtract(actor->velocity, eject);
+            assert(!VECTOR3_IS_NAN(actor->velocity));
+            actor->velocity = ClipVector(actor->velocity, actor->groundNormal);
+            assert(!VECTOR3_IS_NAN(actor->velocity));
         }
 
         // jump
         if(IsKeyPressed(KEY_SPACE)) {
-            //actor->velocity = Vector3Add(actor->velocity, Vector3Scale(groundNormal, 0.3f));
             actor->velocity = Vector3Add(actor->velocity, Vector3Scale(up, 0.5f));
+            actor->grounded = 0;
         }
     }
     else {
@@ -73,51 +98,18 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
 
     actor->grounded --;
 
-    Collision groundCollision = { false };
+    assert(!VECTOR3_PTR_IS_NAN(position));
+    assert(!VECTOR3_IS_NAN(actor->velocity));
+
     MoveActorBox(actor, position, actor->velocity, &groundCollision);
     if(groundCollision.hit) {
         actor->groundNormal = groundCollision.direction;
-        if(groundCollision.depth > GRAVITY * 2)
-            position->z += groundCollision.depth;
     }
+    DrawRay((Ray){ *position, actor->groundNormal }, GREEN);
+    DrawRay((Ray){ *position, actor->velocity }, YELLOW);
+
+    assert(!VECTOR3_PTR_IS_NAN(position));
     
-
-}
-
-float MoveActorRayCollision(Actor * actor, Position * position, Vector3 movement, RayCollision c) {
-    
-    float moveDist = Vector3Length(movement);
-    Vector3 moveNormal = Vector3Normalize(movement);
-
-    if(c.hit && c.distance <= moveDist + ACTOR_HIT_MARGIN) {
-
-        float realMoveDist = c.distance - ACTOR_HIT_MARGIN;
-        if(c.distance > ACTOR_HIT_MARGIN && realMoveDist > 0) {
-            Vector3 realMove = Vector3Scale(moveNormal, realMoveDist);
-            *position = Vector3Add(*position, realMove);
-
-            return realMoveDist; // we moved a partial distance
-        }
-        else
-            return 0.0f; // no movement
-    }
-    // movement vector is completely free
-    else {
-        *position = Vector3Add(*position, movement);
-
-        return moveDist; // we moved the full distance
-    }
-}
-
-float MoveActor(Actor * actor, Position * position, Vector3 hitcore, Vector3 movement, RayCollision * rc) {
-    float moveDist = Vector3Length(movement);
-    Vector3 moveNormal = Vector3Normalize(movement);
-    Ray ray = { hitcore, moveNormal };
-    RayCollision c = RayToAnyCollider(ray, moveDist + ACTOR_HIT_MARGIN*2);
-    if(rc != NULL)
-        *rc = c;
-    
-    return MoveActorRayCollision(actor, position, movement, c);
 }
 
 // not in header, since this likely will only be used in movement code
@@ -153,13 +145,17 @@ float GetElevation(float x, float y, float z) {
     return FLT_MAX;
 }
 
-void ActorCollision(Actor * actor, Collision c, Vector3 * move, Collision * groundCollision) {
-    Vector3 moveNormal = Vector3Normalize(*move);
-    float moveDist = Vector3Length(*move);
-
-    float eject = Vector3DotProduct(moveNormal, Vector3Negate(c.direction)) * c.depth;
-    moveDist = moveDist - eject;
-    *move = Vector3Scale(moveNormal, moveDist);
+void ActorCollision(Actor * actor, Position * position, Collision c, Vector3 * move, Collision * groundCollision) {
+    if(move != NULL) {
+        assert(!VECTOR3_PTR_IS_NAN(move));
+        Vector3 moveNormal = Vector3Normalize(*move);
+        float moveDist = Vector3Length(*move);
+        
+        float eject = Vector3DotProduct(moveNormal, Vector3Negate(c.direction)) * c.depth;
+        moveDist = moveDist - eject;
+        *move = Vector3Scale(moveNormal, moveDist);
+        assert(!VECTOR3_PTR_IS_NAN(move));
+    }
 
     float groundAngle = Vector3Angle(up, c.direction);
     if(groundAngle <= ACTOR_MAX_SLOPE) {
@@ -170,18 +166,20 @@ void ActorCollision(Actor * actor, Collision c, Vector3 * move, Collision * grou
         }
         if(c.depth > groundCollision->depth) {
             groundCollision->depth = c.depth;
+            groundCollision->point = c.point;
         }
     }
+
+    assert(!VECTOR3_IS_NAN(actor->velocity));
+    actor->velocity = ClipVector(actor->velocity, c.direction);
+    assert(!VECTOR3_IS_NAN(actor->velocity));
 
     DrawRay((Ray){ c.point, c.direction }, RED);
 }
 
 float MoveActorBox(Actor * actor, Position * position, Vector3 move, Collision * groundCollision) {
-    
-    groundCollision->hit = false;
-    groundCollision->depth = 0.0f;
-    groundCollision->direction = up;
 
+    assert(!VECTOR3_IS_NAN(move));
     float moveDist = Vector3Length(move);
     Vector3 moveNormal = Vector3Normalize(move);
 
@@ -201,7 +199,8 @@ float MoveActorBox(Actor * actor, Position * position, Vector3 move, Collision *
 
             Collision c = BoxBoxCollision(targetBox, box);
             if(c.hit) {
-                ActorCollision(actor, c, &move, groundCollision);
+                assert(!VECTOR3_IS_NAN(c.direction));
+                ActorCollision(actor, position, c, &move, groundCollision);
             }
         }
     }
@@ -216,13 +215,57 @@ float MoveActorBox(Actor * actor, Position * position, Vector3 move, Collision *
 
             Collision c = BoxMeshCollision(targetBox, collider);
             if(c.hit) {
-                ActorCollision(actor, c, &move, groundCollision);
+                assert(!VECTOR3_IS_NAN(c.direction));
+                ActorCollision(actor, position, c, &move, groundCollision);
+            }
+        }
+    }
+    assert(!VECTOR3_IS_NAN(move));
+    assert(!VECTOR3_PTR_IS_NAN(position));
+    *position = Vector3Add(*position, move);
 
+    return moveDist;
+}
+
+void ActorTestGround(Actor * actor, Position * position, Collision * groundCollision) {
+
+    // what's our box after moving the full distance?
+    Position target = *position;
+    target.z -= ACTOR_GROUND_TEST_DIST;
+
+    DrawCube(target, 0.05f, 0.05f, 0.05f, RED);
+
+    // boxes (non actor)
+    ecs_iter_t it = ecs_query_iter(world, q_BoxColliderNotActor);
+    while (ecs_query_next(&it))  {
+        BoxCollider * colliders = ecs_field(&it, BoxCollider, 0);
+
+        for(int i = 0; i < it.count; i ++) {
+            BoxCollider box = colliders[i];
+
+            Collision c = PointBoxCollision(target, box);
+            assert(!VECTOR3_IS_NAN(c.direction));
+            if(c.hit) {
+                ActorCollision(actor, position, c, NULL, groundCollision);
             }
         }
     }
 
-    *position = Vector3Add(*position, move);
+    // meshes
+    it = ecs_query_iter(world, q_MeshCollider);
+    while (ecs_query_next(&it))  {
+        MeshCollider * colliders = ecs_field(&it, MeshCollider, 0);
 
-    return moveDist;
+        for(int i = 0; i < it.count; i ++) {
+            MeshCollider collider = colliders[i];
+
+            Collision c = PointMeshCollision(target, collider);
+            assert(!VECTOR3_IS_NAN(c.direction));
+            if(c.hit) {
+                ActorCollision(actor, position, c, NULL, groundCollision);
+            }
+        }
+    }
+
+    groundCollision->depth -= ACTOR_GROUND_TEST_DIST;
 }

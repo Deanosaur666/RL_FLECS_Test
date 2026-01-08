@@ -156,8 +156,9 @@ int main () {
 
     ecs_entity_t skybox_entity = ecs_new(world);
     ecs_set_ptr(world, skybox_entity, Model, &model_skybox);
-    ecs_set_ptr(world, skybox_entity, Matrix, &matIdentitiy);
+    //ecs_set_ptr(world, skybox_entity, Matrix, &matIdentitiy);
 
+#if DRAW_SHAPES
     // icosphere
     Model model_icosphere = LoadModel("icosphere.glb");
     Matrix ico_transform = MatrixTranslate(0, 0, 4);
@@ -183,6 +184,7 @@ int main () {
     BoundingBox box = { (Vector3){ -0.5, -0.5, 3.5 }, (Vector3){ 0.5, 0.5, 4.5 } };
     ecs_entity_t box_entity = ecs_new(world);
     ecs_set_ptr(world, box_entity, BoxCollider, &box);
+#endif
 
     // sprite billboard prefabs
     for(int i = SPRITE_RED; i <= SPRITE_PURPLE; i ++) {
@@ -208,11 +210,10 @@ int main () {
         int bb = GetRandomValue(SPRITE_RED, SPRITE_PURPLE);
         ecs_entity_t inst = ecs_new_w_pair(world, EcsIsA, Billboards[bb]);
         ecs_set(world, inst, CamDistance, { 0 });
-        ecs_set(world, inst, Actor, { .type = bb, .box = &smallActorBox });
-
+        ecs_set(world, inst, Actor, { .type = bb, .box = &smallActorBox, .groundNormal = up });
         float x = GetRandomFloat(-7.5, 7.5, 1000);
         float y = GetRandomFloat(-7.5, 7.5, 1000);
-        float z = GetElevation(x, y, 8.0f) + ACTOR_HIT_MARGIN;
+        float z = GetElevation(x, y, 8.0f);
         if(z == FLT_MAX)
             z = 0.0f;
 

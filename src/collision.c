@@ -22,7 +22,7 @@ void VertexMeshSupport(const void *obj, const ccd_vec3_t *dir, ccd_vec3_t *vec) 
     }
 
     Vector3 support = meshPtr->verts[best_index];
-
+    assert(!VECTOR3_IS_NAN(support));
     *vec = RL_TO_CCD_VEC3(support);
 }
 
@@ -38,7 +38,7 @@ Collision VertexMeshCollision(VertexMesh a, VertexMesh b) {
     ccd_vec3_t dir, pos;
     int intersect = ccdGJKPenetration(&b, &a, &ccd, &depth, &dir, &pos);
 
-    return (Collision){ intersect == 0, (float)depth, CCD_TO_RL_VEC3(dir.v), CCD_TO_RL_VEC3(pos.v) };
+    return (Collision){ intersect == 0 && depth > 0, (float)depth, Vector3Normalize(CCD_TO_RL_VEC3(dir.v)), CCD_TO_RL_VEC3(pos.v) };
 }
 
 VertexMesh MeshToVertexMesh(Mesh mesh, Matrix matTransform) {
@@ -92,6 +92,8 @@ MeshCollider GetModelMeshCollider0(Model model, Matrix * transform) {
 void PointSupport(const void *obj, const ccd_vec3_t *dir, ccd_vec3_t *vec) {
     Vector3 * pointPTR = (Vector3 *)obj;
 
+    assert(!VECTOR3_PTR_IS_NAN(pointPTR));
+
     *vec = RL_PTR_TO_CCD_VEC3(pointPTR);
 }
 
@@ -107,7 +109,7 @@ Collision PointVertexMeshCollision(Vector3 p, VertexMesh vm) {
     ccd_vec3_t dir, pos;
     int intersect = ccdGJKPenetration(&vm, &p, &ccd, &depth, &dir, &pos);
 
-    return (Collision){ intersect == 0, (float)depth, CCD_TO_RL_VEC3(dir.v), CCD_TO_RL_VEC3(pos.v) };
+    return (Collision){ intersect == 0 && depth > 0, (float)depth, Vector3Normalize(CCD_TO_RL_VEC3(dir.v)), CCD_TO_RL_VEC3(pos.v) };
 }
 
 Collision PointMeshCollision(Vector3 p, MeshCollider m) {
@@ -143,6 +145,7 @@ void BoundingBoxSupport(const void *obj, const ccd_vec3_t *dir, ccd_vec3_t *vec)
 
     Vector3 support = Vector3Add(center, Vector3Multiply(dirSign, halfsize));
 
+    assert(!VECTOR3_IS_NAN(support));
     *vec = RL_TO_CCD_VEC3(support);
 }
 
@@ -158,7 +161,7 @@ Collision BoxVertexMeshCollision(BoundingBox box, VertexMesh vm) {
     ccd_vec3_t dir, pos;
     int intersect = ccdGJKPenetration(&vm, &box, &ccd, &depth, &dir, &pos);
 
-    return (Collision){ intersect == 0, (float)depth, CCD_TO_RL_VEC3(dir.v), CCD_TO_RL_VEC3(pos.v) };
+    return (Collision){ intersect == 0 && depth > 0, (float)depth, Vector3Normalize(CCD_TO_RL_VEC3(dir.v)), CCD_TO_RL_VEC3(pos.v) };
 }
 
 Collision BoxMeshCollision(BoundingBox box, MeshCollider m) {
@@ -200,7 +203,7 @@ Collision BoxBoxCollision(BoundingBox b1, BoundingBox b2) {
     ccd_vec3_t dir, pos;
     int intersect = ccdGJKPenetration(&b2, &b1, &ccd, &depth, &dir, &pos);
 
-    return (Collision){ intersect == 0, (float)depth, CCD_TO_RL_VEC3(dir.v), CCD_TO_RL_VEC3(pos.v) };
+    return (Collision){ intersect == 0 && depth > 0, (float)depth, Vector3Normalize(CCD_TO_RL_VEC3(dir.v)), CCD_TO_RL_VEC3(pos.v) };
 }
 
 Collision PointBoxCollision(Vector3 p, BoundingBox box) {
@@ -220,7 +223,7 @@ Collision PointBoxCollision(Vector3 p, BoundingBox box) {
     ccd_vec3_t dir, pos;
     int intersect = ccdGJKPenetration(&box, &p, &ccd, &depth, &dir, &pos);
 
-    return (Collision){ intersect == 0, (float)depth, CCD_TO_RL_VEC3(dir.v), CCD_TO_RL_VEC3(pos.v) };
+    return (Collision){ intersect == 0 && depth > 0, (float)depth, Vector3Normalize(CCD_TO_RL_VEC3(dir.v)), CCD_TO_RL_VEC3(pos.v) };
 }
 
 RayCollision RayToMeshColliders(Ray ray, float distance) {
