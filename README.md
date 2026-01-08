@@ -1,3 +1,5 @@
+![Screenshot](/screenshot000.png)
+
 This project is built off of Raylib-Quickstart.
 Build instructions below.
 
