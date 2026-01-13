@@ -149,7 +149,8 @@ void ActorCollision(Actor * actor, Position * position, Collision c, Vector3 * m
         if(moveDist < 0)
             moveDist = 0;
         *move = Vector3Scale(moveNormal, moveDist);
-        actor->velocity = ClipVector(actor->velocity, c.direction);
+        if(Vector3Angle(*move, c.direction) > 90.0f*DEG2RAD)
+            actor->velocity = ClipVector(actor->velocity, c.direction);
     }
 
     if(groundCollision != NULL) {
