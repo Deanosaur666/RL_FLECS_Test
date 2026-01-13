@@ -17,6 +17,8 @@ Vector3 north = { 0.0f, 1.0f, 0.0f };
 Vector3 unit_vector = { 1.0f, 1.0f, 1.0f };
 ecs_world_t * world;
 
+Vector3 mouseWorld;
+
 float Timer = 0;
 
 typedef struct Billboard {
@@ -298,6 +300,7 @@ int main () {
 
         Ray mouseRay = GetScreenToWorldRay(mousePos, camera);
         RayCollision mouseHit = RayToAnyCollider(mouseRay, FLT_MAX);
+        mouseWorld = mouseHit.point;
 		
 		// Draw
         //----------------------------------------------------------------------------------

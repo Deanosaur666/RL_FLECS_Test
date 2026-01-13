@@ -10,6 +10,8 @@ extern Camera camera;
 extern ecs_world_t * world;
 typedef Vector3 Position;
 
+extern Vector3 mouseWorld;
+
 #define q_(suffix) q_##suffix
 
 #endif

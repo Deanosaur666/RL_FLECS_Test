@@ -1,5 +1,6 @@
 #include "boymath.h"
 #include "headers.h"
+#include "main.h"
 
 float Vector3MixedProduct(Vector3 v0, Vector3 v1, Vector3 v2) {
     return Vector3DotProduct(Vector3CrossProduct(v0, v1), v2);
@@ -72,6 +73,8 @@ BoundingBox TransformBoundingBox(BoundingBox box, Matrix matTransform) {
 }
 
 Vector3 ClipVector(Vector3 vec, Vector3 normal) {
+    DrawRay((Ray){ mouseWorld, normal }, YELLOW);
+
     float backoff = Vector3DotProduct(vec, normal);
     Vector3 eject = Vector3Scale(normal, backoff);
     return Vector3Subtract(vec, eject);

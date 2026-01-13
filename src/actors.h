@@ -15,7 +15,7 @@ typedef enum {
     ACTOR_PURSUER,
 } ACTOR_TYPE;
 
-#define ACTOR_GROUND_TEST_DIST 0.1f
+#define ACTOR_GROUND_TEST_DIST 0.05f
 
 #define ACTOR_SMALL_R 0.25f                         // xy radius
 #define ACTOR_SMALL_H (14.0f / 16.0f)               // height, in z

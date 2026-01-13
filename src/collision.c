@@ -131,6 +131,9 @@ Collision PointMeshCollision(Vector3 p, MeshCollider m) {
 
     free(vm.verts);
 
+    //if(c.hit)
+    //    DrawBoundingBox(mbox, PURPLE);
+
     return c;
 }
 
@@ -183,6 +186,9 @@ Collision BoxMeshCollision(BoundingBox box, MeshCollider m) {
 
     free(vm.verts);
 
+    if(c.hit)
+        DrawBoundingBox(mbox, PURPLE);
+
     return c;
 }
 
@@ -203,6 +209,8 @@ Collision BoxBoxCollision(BoundingBox b1, BoundingBox b2) {
     ccd_vec3_t dir, pos;
     int intersect = ccdGJKPenetration(&b2, &b1, &ccd, &depth, &dir, &pos);
 
+    assert(false);
+
     return (Collision){ intersect == 0 && depth > 0, (float)depth, Vector3Normalize(CCD_TO_RL_VEC3(dir.v)), CCD_TO_RL_VEC3(pos.v) };
 }
 
@@ -222,6 +230,8 @@ Collision PointBoxCollision(Vector3 p, BoundingBox box) {
     ccd_real_t depth = 0;
     ccd_vec3_t dir, pos;
     int intersect = ccdGJKPenetration(&box, &p, &ccd, &depth, &dir, &pos);
+
+    assert(false);
 
     return (Collision){ intersect == 0 && depth > 0, (float)depth, Vector3Normalize(CCD_TO_RL_VEC3(dir.v)), CCD_TO_RL_VEC3(pos.v) };
 }
