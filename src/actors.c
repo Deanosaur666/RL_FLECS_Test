@@ -70,7 +70,8 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
 
     // grounded
     if(actor->grounded > 0) {
-        Vector3 accel = GetTiltVector(V3toV2(movedir), actor->groundNormal);
+        Vector3 accel = GetTiltVector(movedir, actor->groundNormal);
+        //Vector3 accel = V2toV3(movedir, 0);
         ActorFriction(actor);
         ActorAccelerate(actor, accel, true);
 
@@ -81,9 +82,7 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
 
         // remove component against ground
         if(actor->grounded == ACTOR_GROUND_TIME) {
-            assert(!VECTOR3_IS_NAN(actor->velocity));
             actor->velocity = ClipVector(actor->velocity, actor->groundNormal);
-            assert(!VECTOR3_IS_NAN(actor->velocity));
         }
 
         // jump
