@@ -57,10 +57,14 @@ void ActorPhysics(Actor * actor, Position * position, Vector2 movedir) {
     ActorTestGround(actor, position, &groundCollision);
     if(groundCollision.hit) {
         actor->grounded = ACTOR_GROUND_TIME;
-        if(fabsf(groundCollision.depth) > ACTOR_GROUND_TEST_DIST)
-            position->z -= (groundCollision.depth - ACTOR_GROUND_TEST_DIST);
-        else if(fabsf(groundCollision.depth) < ACTOR_GROUND_TEST_DIST/2)
+        if(fabsf(groundCollision.depth) > ACTOR_GROUND_TEST_DIST) {
+            position->z += (groundCollision.depth - ACTOR_GROUND_TEST_DIST);
+            printf("DEEP\n");
+        }
+        else if(fabsf(groundCollision.depth) < ACTOR_GROUND_TEST_DIST/2) {
             position->z -= ACTOR_GROUND_TEST_DIST/2;
+            printf("SHALLOW\n");
+        }
     }
     else {
         // apply gravity
