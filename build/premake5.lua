@@ -181,12 +181,12 @@ if (downloadRaylib) then
 
         vpaths 
         {
-            ["Header Files/*"] = { "../include/**.h",  "../include/**.hpp", "../src/**.h", "../src/**.hpp", "../src/libccd/**.h", "../src/libdccd/**.hpp"},
-            ["Source Files/*"] = {"../src/**.c", "src/**.cpp", "../src/libccd/**.c", "src/libccd/**.cpp"},
+            ["Header Files/*"] = { "../include/**.h",  "../include/**.hpp", "../src/**.h", "../src/**.hpp" },
+            ["Source Files/*"] = {"../src/**.c", "src/**.cpp" },
             ["Windows Resource Files/*"] = {"../src/**.rc", "src/**.ico"},
         }
         
-        files {"../src/**.c", "../src/**.cpp", "../src/**.h", "../src/**.hpp", "../include/**.h", "../include/**.hpp", "../src/libccd/**.c", "../src/libccd/**.c"}
+        files {"../src/**.c", "../src/**.cpp", "../src/**.h", "../src/**.hpp", "../include/**.h", "../include/**.hpp" }
         
         filter {"system:windows", "action:vs*"}
             files {"../src/*.rc", "../src/*.ico"}
@@ -194,10 +194,9 @@ if (downloadRaylib) then
         filter{}
         
         includedirs { "../src" }
-        includedirs { "../src/libccd" }
         includedirs { "../include" }
 
-        links {"raylib"}
+        links {"raylib", "ccd"}
 
         cdialect "C17"
         cppdialect "C++17"
@@ -221,10 +220,10 @@ if (downloadRaylib) then
             libdirs {"../bin/%{cfg.buildcfg}"}
 
         filter "system:linux"
-            links {"pthread", "m", "dl", "rt", "X11"}
+            links {"pthread", "m", "dl", "rt", "X11" }
 
         filter "system:macosx"
-            links {"OpenGL.framework", "Cocoa.framework", "IOKit.framework", "CoreFoundation.framework", "CoreAudio.framework", "CoreVideo.framework", "AudioToolbox.framework"}
+            links {"OpenGL.framework", "Cocoa.framework", "IOKit.framework", "CoreFoundation.framework", "CoreAudio.framework", "CoreVideo.framework", "AudioToolbox.framework" }
 
         filter{}
         

@@ -186,9 +186,10 @@ Collision BoxMeshCollision(BoundingBox box, MeshCollider m) {
 
     free(vm.verts);
 
+#if DEBUG
     if(c.hit)
         DrawBoundingBox(mbox, PURPLE);
-
+#endif
     return c;
 }
 

@@ -7,7 +7,7 @@
 #include "raymath.h"
 #include "flecs.h"
 #include "resource_dir.h"
-#include "libccd/ccd/ccd.h"
+#include <ccd/ccd.h>
 
 #include "list.h"
 #include "boymath.h"
@@ -17,7 +17,7 @@
 
 #define ACTOR_COUNT 4 // 64
 
-#define DEBUG 1
+#define DEBUG 0
 #define DRAWWIRES 0 
 #define DRAW_SHAPES 0
 #define DRAW_COLLIDER_BOXES 0

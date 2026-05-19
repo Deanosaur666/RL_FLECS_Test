@@ -132,8 +132,6 @@ int main () {
 
     // plain
     printf("LOAD MAP\n");
-	//Model model_map = LoadModelFromMesh(GenMeshPlane2(16, 16, 16, 16));
-    //Model model_map = LoadModel("Plane test.glb");
     Model model_map = LoadModel("map1.glb");
 	model_map.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tex_plain;
 
@@ -150,6 +148,17 @@ int main () {
     }
 
     free(mapColliders);
+
+    // cop
+    Model model_cop = LoadModel("Cop.glb");
+    ecs_entity_t cop_entity = ecs_new(world);
+    ecs_set_ptr(world, cop_entity, Model, &model_cop);
+    ecs_set_ptr(world, cop_entity, Matrix, &matIdentitiy);
+
+    ecs_entity_t cop2_entity = ecs_new(world);
+    ecs_set_ptr(world, cop2_entity, Model, &model_cop);
+    Matrix matCop2 = MatrixMultiply(matIdentitiy, MatrixTranslate(1.0f, 0.0f, 0.0f));
+    ecs_set_ptr(world, cop2_entity, Matrix, &matCop2);
 
     // skybox
     printf("LOAD SKYBOX\n");
@@ -444,7 +453,7 @@ int main () {
         // inner loop
         for(int i = 0; i < it.count; i ++) {
             Model model = models[i];
-            UnloadModel(models[i]);
+            UnloadModel(models[i]); // CAUSES ERROR BECAUSE MODEL MAY ALREADY BE UNLOADED
         }
     }
 

@@ -185,9 +185,9 @@ float MoveActorBox(Actor * actor, Position * position, Vector3 move, Collision *
     // what's our box after moving the full distance?
     Position target = Vector3Add(*position, move);
     BoundingBox targetBox = BoundingBoxAdd(*actor->box, target);
-
+#if DEBUG
     DrawBoundingBox(targetBox, RED);
-
+#endif
     // boxes (non actor)
     ecs_iter_t it = ecs_query_iter(world, q_BoxColliderNotActor);
     while (ecs_query_next(&it))  {
