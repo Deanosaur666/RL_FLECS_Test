@@ -153,8 +153,8 @@ workspace (workspaceName)
 
     targetdir "bin/%{cfg.buildcfg}/"
 
-if (downloadRaylib) then
-    build_externals()
+    if (downloadRaylib) then
+        build_externals()
     end
 
     startproject(workspaceName)
@@ -196,7 +196,7 @@ if (downloadRaylib) then
         includedirs { "../src" }
         includedirs { "../include" }
 
-        links {"raylib", "ccd"}
+        links {"raylib", "ccd"} -- added ccd link for 3D collision detection
 
         cdialect "C17"
         cppdialect "C++17"

@@ -6,15 +6,15 @@
 		"**/CVS": true,
 		"**/.DS_Store": true,
 		"**/*.o": true,
-		"**/*.exe": true,
+		"build/external" : true,
+		"*.bat" : true,
+		".gitattributes" : true,
 	},
 	"makefile.configureOnOpen": false,
 	"files.associations": {
 		"*.m": "c"
 	},
 	"chat.agent.enabled": false,
-	"chat.commandCenter.enabled": false,
-	"inlineChat.accessibleDiffView": "off",
 	"terminal.integrated.initialHint": false
 
 }
